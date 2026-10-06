@@ -1,3 +1,5 @@
+![GitHub Downloads](https://img.shields.io/github/downloads/jimz011/element-x-enhanced/total?logo=github&label=GitHub%20Downloads&color=brightgreen)
+
 # Element X Enhanced
 
 This is a heavily modified version of Element X to look and feel like Element Classic.
