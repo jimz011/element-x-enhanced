@@ -1,0 +1,42 @@
+/*
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+ * Please see LICENSE files in the repository root for full details.
+ */
+
+package io.element.android.libraries.mediaupload.api
+
+import android.net.Uri
+
+/**
+ * Prepares a media file for upload: resizing, transcoding and stripping metadata that would leak information about the sender.
+ */
+interface MediaPreProcessor {
+    /**
+     * Given a [uri] and [mimeType], pre-processes the media before it's uploaded, resizing, transcoding, and removing sensitive info from its metadata.
+     * If [deleteOriginal] is `true`, the file reference by the [uri] will be automatically deleted too when this process finishes.
+     *
+     * @param uri the media to process.
+     * @param mimeType the MIME type of that media.
+     * @param deleteOriginal whether to delete the source file once processing is done.
+     * @param mediaOptimizationConfig how aggressively the media should be compressed.
+     * @param onProgress preparation progress between 0 and 1, when available.
+     * @return a [Result] with the [MediaUploadInfo] containing all the info needed to begin the upload.
+     */
+    suspend fun process(
+        uri: Uri,
+        mimeType: String,
+        deleteOriginal: Boolean,
+        mediaOptimizationConfig: MediaOptimizationConfig,
+        onProgress: (Float) -> Unit = {},
+    ): Result<MediaUploadInfo>
+
+    /**
+     * Clean up any temporary files or resources used during the media processing.
+     */
+    fun cleanUp()
+
+    data class Failure(override val cause: Throwable?) : Exception(cause)
+}

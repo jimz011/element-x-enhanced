@@ -1,0 +1,75 @@
+/*
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+ * Please see LICENSE files in the repository root for full details.
+ */
+
+package io.element.android.features.userprofile.shared.blockuser
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import io.element.android.features.userprofile.api.UserProfileEvent
+import io.element.android.features.userprofile.api.UserProfileState
+import io.element.android.features.userprofile.shared.R
+import io.element.android.libraries.designsystem.components.dialogs.ConfirmationDialog
+
+@Composable
+fun BlockUserDialogs(state: UserProfileState) {
+    when (state.displayConfirmationDialog) {
+        null -> Unit
+        UserProfileState.ConfirmationDialog.Block -> {
+            BlockConfirmationDialog(
+                onBlockAction = {
+                    state.eventSink(
+                        UserProfileEvent.BlockUser(
+                            needsConfirmation = false
+                        )
+                    )
+                },
+                onDismiss = { state.eventSink(UserProfileEvent.ClearConfirmationDialog) }
+            )
+        }
+        UserProfileState.ConfirmationDialog.Unblock -> {
+            UnblockConfirmationDialog(
+                onUnblockAction = {
+                    state.eventSink(
+                        UserProfileEvent.UnblockUser(
+                            needsConfirmation = false
+                        )
+                    )
+                },
+                onDismiss = { state.eventSink(UserProfileEvent.ClearConfirmationDialog) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun BlockConfirmationDialog(
+    onBlockAction: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ConfirmationDialog(
+        title = stringResource(R.string.screen_dm_details_block_user),
+        content = stringResource(R.string.screen_dm_details_block_alert_description),
+        submitText = stringResource(R.string.screen_dm_details_block_alert_action),
+        onSubmitClick = onBlockAction,
+        onDismiss = onDismiss
+    )
+}
+
+@Composable
+private fun UnblockConfirmationDialog(
+    onUnblockAction: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ConfirmationDialog(
+        title = stringResource(R.string.screen_dm_details_unblock_user),
+        content = stringResource(R.string.screen_dm_details_unblock_alert_description),
+        submitText = stringResource(R.string.screen_dm_details_unblock_alert_action),
+        onSubmitClick = onUnblockAction,
+        onDismiss = onDismiss
+    )
+}

@@ -1,0 +1,98 @@
+/*
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2025 New Vector Ltd.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+ * Please see LICENSE files in the repository root for full details.
+ */
+
+@file:OptIn(ExperimentalTestApi::class)
+
+package io.element.android.features.login.impl.screens.chooseaccountprovider
+
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.AndroidComposeUiTest
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.v2.runAndroidComposeUiTest
+import io.element.android.features.login.impl.accountprovider.anAccountProviderManaged
+import io.element.android.features.login.impl.login.aLoginModeState
+import io.element.android.libraries.architecture.AsyncData
+import io.element.android.libraries.matrix.api.auth.OAuthDetails
+import io.element.android.libraries.matrix.test.AN_EXCEPTION
+import io.element.android.libraries.ui.strings.CommonStrings
+import io.element.android.tests.testutils.EnsureNeverCalled
+import io.element.android.tests.testutils.EnsureNeverCalledWithParam
+import io.element.android.tests.testutils.EventsRecorder
+import io.element.android.tests.testutils.clickOn
+import io.element.android.tests.testutils.ensureCalledOnce
+import io.element.android.tests.testutils.pressBack
+import io.element.android.tests.testutils.robolectric.RobolectricTest
+import org.junit.Test
+import org.robolectric.annotation.Config
+
+class ChooseAccountProviderViewTest : RobolectricTest() {
+    @Test
+    fun `clicking on back invokes the expected callback`() = runAndroidComposeUiTest {
+        val eventSink = EventsRecorder<ChooseAccountProviderEvent>(expectEvents = false)
+        ensureCalledOnce {
+            setChooseAccountProviderView(
+                state = aChooseAccountProviderState(
+                    eventSink = eventSink,
+                ),
+                onBackClick = it,
+            )
+            pressBack()
+        }
+    }
+
+    @Config(qualifiers = "h1024dp")
+    @Test
+    fun `selecting an account provider emits the the expected event`() = runAndroidComposeUiTest {
+        val eventSink = EventsRecorder<ChooseAccountProviderEvent>()
+        setChooseAccountProviderView(
+            state = aChooseAccountProviderState(
+                accountProviders = listOf(
+                    ChooseAccountProviderPresenterTest.accountProvider1,
+                    ChooseAccountProviderPresenterTest.accountProvider2,
+                ),
+                selectedAccountProvider = anAccountProviderManaged(),
+                eventSink = eventSink,
+            ),
+        )
+        onNodeWithText(ChooseAccountProviderPresenterTest.accountProvider1.friendlyServerName()).performClick()
+        eventSink.assertSingle(ChooseAccountProviderEvent.SelectAccountProvider(ChooseAccountProviderPresenterTest.accountProvider1))
+    }
+
+    @Test
+    fun `when error is displayed - closing the dialog emits the expected event`() = runAndroidComposeUiTest {
+        val eventSink = EventsRecorder<ChooseAccountProviderEvent>()
+        setChooseAccountProviderView(
+            state = aChooseAccountProviderState(
+                loginModeState = aLoginModeState(loginMode = AsyncData.Failure(AN_EXCEPTION)),
+                eventSink = eventSink,
+            ),
+        )
+        clickOn(CommonStrings.action_ok)
+        eventSink.assertSingle(ChooseAccountProviderEvent.ClearError)
+    }
+
+    private fun AndroidComposeUiTest<ComponentActivity>.setChooseAccountProviderView(
+        state: ChooseAccountProviderState,
+        onBackClick: () -> Unit = EnsureNeverCalled(),
+        onOAuthDetails: (OAuthDetails) -> Unit = EnsureNeverCalledWithParam(),
+        onNeedLoginPassword: () -> Unit = EnsureNeverCalled(),
+        onLearnMoreClick: () -> Unit = EnsureNeverCalled(),
+    ) {
+        setContent {
+            ChooseAccountProviderView(
+                state = state,
+                onBackClick = onBackClick,
+                onOAuthDetails = onOAuthDetails,
+                onNeedLoginPassword = onNeedLoginPassword,
+                onLearnMoreClick = onLearnMoreClick,
+            )
+        }
+    }
+}

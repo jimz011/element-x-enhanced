@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="screen_room_search_title">Search in this chat</string>
+    <string name="screen_room_search_hint">Enter keywords to find messages in this chat.</string>
+    <string name="screen_room_search_no_results">No matching messages in this chat.</string>
+    <string name="screen_room_search_load_more">Load more results</string>
+    <string name="screen_room_search_unavailable">Message search is unavailable for this account.</string>
+    <string name="error_room_search">Could not search messages. Please try again.</string>
+</resources>

@@ -1,0 +1,60 @@
+/*
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+ * Please see LICENSE files in the repository root for full details.
+ */
+
+package io.element.android.features.rageshake.api.reporter
+
+import java.io.File
+
+/**
+ * Uploads bug reports, including the log files the app has been writing.
+ *
+ * Progress and the outcome are reported through the listener passed to [sendBugReport] rather than by returning or throwing.
+ */
+interface BugReporter {
+    /**
+     * Send a bug report.
+     *
+     * @param withDevicesLogs true to include the device log
+     * @param withCrashLogs true to include the crash logs
+     * @param withScreenshot true to include the screenshot
+     * @param problemDescription the bug description
+     * @param canContact true if the user opt in to be contacted directly
+     * @param sendPushRules true to include the push rules
+     * @param ghIssueNumber it not null, the GitHub issue number to link the bug report to.
+     * @param listener the listener
+     */
+    suspend fun sendBugReport(
+        withDevicesLogs: Boolean,
+        withCrashLogs: Boolean,
+        withScreenshot: Boolean,
+        problemDescription: String,
+        canContact: Boolean = false,
+        sendPushRules: Boolean = false,
+        ghIssueNumber: Int? = null,
+        listener: BugReporterListener
+    )
+
+    /**
+     * Provide the log directory, i.e. where the rotating log files are written.
+     */
+    fun logDirectory(): File
+
+    /**
+     * Set the current tracing log level, so it can be reported alongside the bug.
+     *
+     * @param logLevel the log level currently in effect.
+     */
+    fun setCurrentTracingLogLevel(logLevel: String)
+
+    /**
+     * Save the logcat.
+     *
+     * @return the file the logcat was written to, or `null` when it could not be captured.
+     */
+    fun saveLogCat(): File?
+}

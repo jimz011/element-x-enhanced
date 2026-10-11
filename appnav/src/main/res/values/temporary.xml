@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="screen_home_select_chat">Select a chat to start messaging</string>
+    <string name="a11y_resize_chat_panes">Resize chat list and conversation</string>
+</resources>

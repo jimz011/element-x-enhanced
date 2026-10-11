@@ -1,0 +1,18 @@
+/*
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+ * Please see LICENSE files in the repository root for full details.
+ */
+
+package io.element.android.libraries.push.api.gateway
+
+sealed class PushGatewayFailure : Exception() {
+    class PusherRejected : PushGatewayFailure()
+
+    /**
+     * The gateway refused the notification because too many were sent to it.
+     */
+    class RateLimited : PushGatewayFailure()
+}

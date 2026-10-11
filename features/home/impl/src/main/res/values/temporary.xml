@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 Element Creations Ltd.
+  ~
+  ~ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+  ~ Please see LICENSE files in the repository root for full details.
+  -->
+
+<resources>
+    <string name="start_searching_title">Start searching…</string>
+    <string name="start_searching_subtitle">Search for chats and messages</string>
+    <string name="search_section_chats">Chats</string>
+    <string name="search_from_your_messages_header">From your messages</string>
+    <string name="search_section_messages">Messages</string>
+    <string name="search_no_results_title">No results</string>
+    <string name="search_no_results_subtitle">There are no results for “%1$s”. Try a new search term.</string>
+    <string name="screen_roomlist_classic_all_chats">All chats</string>
+    <string name="screen_search_recent_searches_section_title">Recent searches</string>
+    <string name="screen_roomlist_classic_quick_access">Recent</string>
+    <string name="screen_roomlist_classic_direct_messages">Direct messages</string>
+    <string name="screen_roomlist_classic_section_spaces">Spaces</string>
+    <string name="screen_roomlist_classic_section_low_priority">Low priority</string>
+    <string name="a11y_open_spaces">Open spaces</string>
+    <string name="a11y_expand_space">Expand space</string>
+    <string name="a11y_collapse_space">Collapse space</string>
+    <string name="a11y_unread_rooms_count">%1$d unread</string>
+    <string name="action_mark_all_as_read">Mark all as read</string>
+    <string name="search_filter_room">Room</string>
+    <string name="search_filter_room_all">All rooms</string>
+    <string name="search_filter_sender">Sender</string>
+    <string name="search_filter_sender_all">Anyone</string>
+    <string name="search_filter_date">Date</string>
+    <string name="search_filter_date_any">Any time</string>
+    <string name="search_filter_date_today">Today</string>
+    <string name="search_filter_date_this_week">This week</string>
+    <string name="search_filter_date_this_month">This month</string>
+    <string name="search_filter_date_this_year">This year</string>
+    <string name="search_filter_type_all">All types</string>
+    <string name="search_filter_type_text">Text</string>
+    <string name="search_filter_type_images">Images</string>
+    <string name="search_filter_type_videos">Videos</string>
+    <string name="search_filter_type_audio">Audio</string>
+    <string name="search_filter_type_files">Files</string>
+    <string name="search_filter_clear">Clear filters</string>
+</resources>

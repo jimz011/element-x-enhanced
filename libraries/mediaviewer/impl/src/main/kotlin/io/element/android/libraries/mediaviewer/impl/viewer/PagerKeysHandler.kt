@@ -1,0 +1,90 @@
+/*
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2025 New Vector Ltd.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+ * Please see LICENSE files in the repository root for full details.
+ */
+
+package io.element.android.libraries.mediaviewer.impl.viewer
+
+import dev.zacsweers.metro.Inject
+import io.element.android.libraries.mediaviewer.impl.model.MediaItem
+import io.element.android.libraries.mediaviewer.impl.model.eventId
+import io.element.android.libraries.mediaviewer.impl.model.mediaSource
+
+/**
+ * x and y are loading items.
+ * Capital letters are media items.
+ * First list emitted
+ *   x  F  G  H  y
+ * indexes will be
+ *   0  1  2  3  4
+ * (keyOffset = 0)
+ * New items added to the end of the list
+ *   x  F  G  H  I  J  K  y
+ * indexes will be
+ *   0  1  2  3  4  5  6  7
+ *  (keyOffset = 0)
+ * New items added to the beginning of the list
+ *   x  D  E  F  G  H  I  J  K  y
+ * indexes will be
+ *  -2 -1  0  1  2  3  4  5  6  7
+ * (keyOffset = -2)
+ * loader item vanishes
+ *   D  E  F  G  H  I  J  K
+ *  indexes will be
+ *  -1  0  1  2  3  4  5  6
+ * (keyOffset = -1)
+ */
+@Inject
+class PagerKeysHandler {
+    private data class Data(
+        val mediaItems: List<MediaItem>,
+        val keyOffset: Long,
+    )
+
+    // Will store the list of media items and the key offset of the first item in the list
+    private var cachedData: Data = Data(emptyList(), 0)
+
+    fun accept(mediaItems: List<MediaItem>) {
+        if (cachedData.mediaItems.isEmpty()) {
+            cachedData = Data(mediaItems, 0)
+        } else {
+            // Search a common item in both lists using eventId + mediaSource to handle gallery items
+            val itemInCacheIndex = cachedData.mediaItems.indexOfFirst { cachedItem ->
+                cachedItem is MediaItem.Event && mediaItems
+                    .filterIsInstance<MediaItem.Event>()
+                    .any { newItem ->
+                        cachedItem.eventId() == newItem.eventId() &&
+                            cachedItem.mediaSource().safeUrl == newItem.mediaSource().safeUrl
+                    }
+            }
+            cachedData = if (itemInCacheIndex == -1) {
+                Data(mediaItems, 0)
+            } else {
+                val cachedItem = cachedData.mediaItems[itemInCacheIndex]
+                val eventId = (cachedItem as? MediaItem.Event)?.eventId()
+                val cachedSourceUrl = (cachedItem as? MediaItem.Event)?.mediaSource()?.safeUrl
+                if (eventId == null || cachedSourceUrl == null) {
+                    Data(mediaItems, 0)
+                } else {
+                    val itemIndex = mediaItems.indexOfFirst { mediaItem ->
+                        mediaItem is MediaItem.Event &&
+                            mediaItem.eventId() == eventId &&
+                            mediaItem.mediaSource().safeUrl == cachedSourceUrl
+                    }
+                    if (itemIndex == -1) {
+                        Data(mediaItems, 0)
+                    } else {
+                        Data(mediaItems, cachedData.keyOffset + itemInCacheIndex - itemIndex.toLong())
+                    }
+                }
+            }
+        }
+    }
+
+    fun getKey(mediaItem: MediaItem): Long {
+        return cachedData.mediaItems.indexOf(mediaItem) + cachedData.keyOffset
+    }
+}

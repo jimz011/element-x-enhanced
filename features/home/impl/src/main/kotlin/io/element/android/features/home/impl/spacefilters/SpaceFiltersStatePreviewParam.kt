@@ -1,0 +1,99 @@
+/*
+ * Copyright (c) 2026 Element Creations Ltd.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+ * Please see LICENSE files in the repository root for full details.
+ */
+
+package io.element.android.features.home.impl.spacefilters
+
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import io.element.android.libraries.matrix.api.core.RoomAlias
+import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.spaces.SpaceServiceFilter
+import io.element.android.libraries.previewutils.room.aSpaceRoom
+import kotlinx.collections.immutable.toImmutableList
+
+class SpaceFiltersStatePreviewParam : PreviewParameterProvider<SpaceFiltersState> {
+    override val values: Sequence<SpaceFiltersState>
+        get() = sequenceOf(
+            aSelectingSpaceFiltersState(),
+            aSelectingSpaceFiltersState(searchQuery = "Pr"),
+            aSelectingSpaceFiltersState(selectedFilter = aSpaceServiceFilter(displayName = "Work")),
+            // Selecting a child should auto-expand its parent group, rather than hiding the selection.
+            aSelectingSpaceFiltersState(
+                selectedFilter = aSpaceServiceFilter(
+                    displayName = "Projects",
+                    roomId = RoomId("!projects:example.com"),
+                    canonicalAlias = RoomAlias("#projects:example.com"),
+                    level = 1,
+                )
+            ),
+        )
+}
+
+fun aDisabledSpaceFiltersState() = SpaceFiltersState.Disabled
+
+fun anUnselectedSpaceFiltersState(
+    availableFilters: List<SpaceServiceFilter> = aSelectingSpaceFiltersState().availableFilters,
+    eventSink: (SpaceFiltersEvent.Unselected) -> Unit = {},
+) = SpaceFiltersState.Unselected(
+    availableFilters = availableFilters.toImmutableList(),
+    eventSink = eventSink,
+)
+
+fun aSelectingSpaceFiltersState(
+    // Ordered the way the SDK's own space_filters() orders them: every level-1 filter directly
+    // follows its level-0 parent (here, "Projects" is a child of "Work", not of "Personal").
+    availableFilters: List<SpaceServiceFilter> = listOf(
+        aSpaceServiceFilter(
+            displayName = "Work",
+            canonicalAlias = RoomAlias("#work:example.com"),
+        ),
+        aSpaceServiceFilter(
+            displayName = "Projects",
+            roomId = RoomId("!projects:example.com"),
+            canonicalAlias = RoomAlias("#projects:example.com"),
+            level = 1,
+        ),
+        aSpaceServiceFilter(
+            displayName = "Personal",
+            roomId = RoomId("!personal:example.com"),
+        ),
+        aSpaceServiceFilter(
+            displayName = "Gaming",
+            roomId = RoomId("!gaming:example.com"),
+        ),
+    ),
+    searchQuery: String = "",
+    selectedFilter: SpaceServiceFilter? = null,
+    eventSink: (SpaceFiltersEvent.Selecting) -> Unit = {},
+) = SpaceFiltersState.Selecting(
+    availableFilters = availableFilters.toImmutableList(),
+    searchQuery = TextFieldState(searchQuery),
+    selectedFilter = selectedFilter,
+    eventSink = eventSink,
+)
+
+fun aSelectedSpaceFiltersState(
+    selectedFilter: SpaceServiceFilter = aSpaceServiceFilter(displayName = "Work"),
+    availableFilters: List<SpaceServiceFilter> = listOf(selectedFilter),
+    eventSink: (SpaceFiltersEvent.Selected) -> Unit = {},
+) = SpaceFiltersState.Selected(
+    availableFilters = availableFilters.toImmutableList(),
+    selectedFilter = selectedFilter,
+    eventSink = eventSink,
+)
+
+fun aSpaceServiceFilter(
+    displayName: String = "Space",
+    roomId: RoomId = RoomId("!space:example.com"),
+    canonicalAlias: RoomAlias? = null,
+    level: Int = 0,
+    descendants: List<RoomId> = emptyList(),
+) = SpaceServiceFilter(
+    spaceRoom = aSpaceRoom(displayName = displayName, roomId = roomId, canonicalAlias = canonicalAlias),
+    level = level,
+    descendants = descendants,
+)
