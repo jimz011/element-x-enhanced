@@ -121,12 +121,6 @@ android {
         }
 
         getByName("release") {
-            resValue("string", "app_name", baseAppName)
-            resValue(
-                "string",
-                "login_redirect_scheme",
-                oAuthRedirectSchemeBase,
-            )
             signingConfig = signingConfigs.getByName("debug")
 
             optimization {
@@ -175,6 +169,16 @@ android {
                     "1:912726360885:android:e17435e0beb0303000427c"
                 }
             }
+        }
+
+        // Define release identity resources after nightly copies its settings, so each variant defines these values only once.
+        getByName("release") {
+            resValue("string", "app_name", baseAppName)
+            resValue(
+                "string",
+                "login_redirect_scheme",
+                oAuthRedirectSchemeBase,
+            )
         }
     }
 
