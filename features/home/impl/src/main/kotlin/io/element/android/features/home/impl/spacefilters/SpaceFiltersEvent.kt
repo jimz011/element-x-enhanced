@@ -20,6 +20,7 @@ sealed interface SpaceFiltersEvent {
     sealed interface Selecting : SpaceFiltersEvent {
         /** Dismiss the sheet, restoring whatever space was selected before it was opened. */
         data object Cancel : Selecting
+
         /** Leave the sheet showing all chats, i.e. no space filter at all. */
         data object ClearSelection : Selecting
         data class SelectFilter(val spaceFilter: SpaceServiceFilter) : Selecting

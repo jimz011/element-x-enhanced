@@ -136,7 +136,7 @@ class RoomListPresenter(
         // Unfiltered by category or space filter, unlike the summaries roomListContentState() below
         // reads -- see RoomListDataSource.allRoomSummariesFlow for why quick access and mark-all-as-read
         // both need this rather than the filtered list.
-        val allSummaries by produceState<ImmutableList<RoomListRoomSummary>>(initialValue = persistentListOf()) {
+        val allSummaries by produceState(initialValue = persistentListOf()) {
             roomListDataSource.allRoomSummariesFlow.collect { value = it }
         }
         val quickAccessSummaries = remember(allSummaries, recentlyOpenedTimestamps) {
@@ -376,7 +376,7 @@ class RoomListPresenter(
 
 /**
  * The classic quick access row shows the most recently *active* chats, newest first -- the same
- * ordering as classic's own recents strip. A room's own effective recency is the later of two things:
+ * ordering as classic's own recents strip. A room's effective recency uses whichever timestamp is newer:
  * the timestamp of its latest message (so a message landing in a room you never personally opened
  * still bumps it to the front), and [recentlyOpenedTimestamps] (so opening a chat also bumps it to the
  * front, the instant you open it -- until something even newer arrives elsewhere). Both are real wall
