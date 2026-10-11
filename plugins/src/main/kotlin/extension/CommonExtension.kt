@@ -33,6 +33,7 @@ fun ApplicationExtension.androidAppConfig(project: Project) {
 
 fun LibraryExtension.androidLibraryConfig(project: Project) {
     compileSdk = Versions.COMPILE_SDK
+    testFixtures.enable = true
 
     defaultConfig(::defaultLibraryConfig)
     compileOptions(::defaultCompileOptions)
