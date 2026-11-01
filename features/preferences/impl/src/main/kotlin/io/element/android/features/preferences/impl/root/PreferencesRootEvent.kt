@@ -12,4 +12,7 @@ sealed interface PreferencesRootEvent {
     data object OnVersionInfoClick : PreferencesRootEvent
     data object ToggleOtherAccountsExpanded : PreferencesRootEvent
     data class SetTheme(val theme: ThemeOption) : PreferencesRootEvent
+
+    /** Sets the accent color of the app, as an ARGB int, or `null` to go back to the default one. */
+    data class SetAccentColor(val color: Int?) : PreferencesRootEvent
 }

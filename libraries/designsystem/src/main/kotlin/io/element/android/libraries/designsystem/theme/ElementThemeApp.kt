@@ -16,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.theme.Theme
 import io.element.android.compound.theme.mapToTheme
@@ -51,6 +52,7 @@ val LocalBuildMeta = staticCompositionLocalOf {
  * Will also ensure that the system is applying the correct global theme
  * to the application, especially when the system is light and the application
  * is forced to use dark theme.
+ * If the user picked an accent color, it replaces the accent tokens of [compoundLight] and [compoundDark].
  */
 @Composable
 fun ElementThemeApp(
@@ -76,14 +78,20 @@ fun ElementThemeApp(
             }
         )
     }
+    val accentColor by remember {
+        appPreferencesStore.getThemeAccentColorFlow()
+    }.collectAsState(initial = null)
+    val accent = accentColor?.let { Color(it) }
+    val themedLight = remember(compoundLight, accent) { accent?.let(compoundLight::withAccent) ?: compoundLight }
+    val themedDark = remember(compoundDark, accent) { accent?.let(compoundDark::withAccent) ?: compoundDark }
     CompositionLocalProvider(
         LocalBuildMeta provides buildMeta,
     ) {
         ElementTheme(
             theme = theme,
             content = content,
-            compoundLight = compoundLight,
-            compoundDark = compoundDark,
+            compoundLight = themedLight,
+            compoundDark = themedDark,
         )
     }
 }

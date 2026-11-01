@@ -25,6 +25,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -317,6 +320,14 @@ private fun AppSettingsSection(
     onOpenLocationSettings: () -> Unit,
     onOpenMediaSettings: () -> Unit,
 ) {
+    var showAccentColorDialog by remember { mutableStateOf(false) }
+    if (showAccentColorDialog) {
+        AccentColorDialog(
+            currentColor = state.accentColor,
+            onSubmit = { color -> state.eventSink(PreferencesRootEvent.SetAccentColor(color)) },
+            onDismiss = { showAccentColorDialog = false },
+        )
+    }
     PreferenceCategory(
         title = stringResource(CommonStrings.common_app_settings),
     ) {
@@ -329,6 +340,14 @@ private fun AppSettingsSection(
             onSelectOption = { themeOption ->
                 state.eventSink(PreferencesRootEvent.SetTheme(themeOption))
             }
+        )
+        ListItem(
+            content = { Text(stringResource(id = CommonStrings.common_accent_color)) },
+            supportingContent = {
+                Text(state.accentColor?.toHexColorString() ?: stringResource(CommonStrings.common_accent_color_default))
+            },
+            leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Theme())),
+            onClick = { showAccentColorDialog = true },
         )
         ListItem(
             content = { Text(stringResource(id = CommonStrings.common_media_upload_quality)) },

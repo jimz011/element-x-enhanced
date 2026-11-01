@@ -22,6 +22,7 @@ import kotlinx.collections.immutable.ImmutableList
 data class PreferencesRootState(
     val myUser: MatrixUser,
     val theme: ThemeOption,
+    val accentColor: Int?,
     val preferencesAccountState: PreferencesAccountState,
     val availableThemeOptions: ImmutableList<ThemeOption>,
     val userStatusState: UserStatusState?,

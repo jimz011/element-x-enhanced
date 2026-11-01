@@ -120,6 +120,9 @@ class PreferencesRootPresenter(
             }
         }
 
+        val accentColor by remember {
+            appPreferencesStore.getThemeAccentColorFlow()
+        }.collectAsState(initial = null)
         val availableThemeOptions = remember(isBlackThemeAllowed) {
             if (isBlackThemeAllowed) {
                 ThemeOption.entries
@@ -145,6 +148,9 @@ class PreferencesRootPresenter(
                 PreferencesRootEvent.ToggleOtherAccountsExpanded -> coroutineScope.launch {
                     appPreferencesStore.setOtherAccountsExpanded(!isOtherAccountsSectionExpanded)
                 }
+                is PreferencesRootEvent.SetAccentColor -> sessionCoroutineScope.launch {
+                    appPreferencesStore.setThemeAccentColor(event.color)
+                }
                 is PreferencesRootEvent.SetTheme -> sessionCoroutineScope.launch {
                     when (event.theme) {
                         ThemeOption.System -> appPreferencesStore.setTheme(Theme.System.name)
@@ -161,6 +167,7 @@ class PreferencesRootPresenter(
             userStatusState = userStatusState,
             preferencesAccountState = preferencesAccountState,
             theme = themeOption,
+            accentColor = accentColor,
             availableThemeOptions = availableThemeOptions,
             version = remember { versionFormatter.get() },
             isMultiAccountEnabled = isMultiAccountEnabled,

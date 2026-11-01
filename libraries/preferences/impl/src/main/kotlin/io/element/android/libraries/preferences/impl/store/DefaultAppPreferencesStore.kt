@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.map
 private val developerModeKey = booleanPreferencesKey("developerMode")
 private val customElementCallBaseUrlKey = stringPreferencesKey("elementCallBaseUrl")
 private val themeKey = stringPreferencesKey("theme")
+private val themeAccentColorKey = intPreferencesKey("themeAccentColor")
 private val hideInviteAvatarsKey = booleanPreferencesKey("hideInviteAvatars")
 private val otherAccountsExpandedKey = booleanPreferencesKey("otherAccountsExpanded")
 private val timelineMediaPreviewValueKey = stringPreferencesKey("timelineMediaPreviewValue")
@@ -95,6 +96,22 @@ class DefaultAppPreferencesStore(
     override fun getThemeFlow(): Flow<String?> {
         return store.data.map { prefs ->
             prefs[themeKey]
+        }
+    }
+
+    override suspend fun setThemeAccentColor(color: Int?) {
+        store.edit { prefs ->
+            if (color == null) {
+                prefs.remove(themeAccentColorKey)
+            } else {
+                prefs[themeAccentColorKey] = color
+            }
+        }
+    }
+
+    override fun getThemeAccentColorFlow(): Flow<Int?> {
+        return store.data.map { prefs ->
+            prefs[themeAccentColorKey]
         }
     }
 

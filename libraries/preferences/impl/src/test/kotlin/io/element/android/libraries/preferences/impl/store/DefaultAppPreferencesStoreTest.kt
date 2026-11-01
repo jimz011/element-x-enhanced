@@ -56,6 +56,18 @@ class DefaultAppPreferencesStoreTest {
     }
 
     @Test
+    fun `theme accent color is unset by default, persists updates and can be cleared`() = runTest {
+        val store = createStore()
+        assertThat(store.getThemeAccentColorFlow().first()).isNull()
+
+        store.setThemeAccentColor(0xFF3B82F6.toInt())
+        assertThat(store.getThemeAccentColorFlow().first()).isEqualTo(0xFF3B82F6.toInt())
+
+        store.setThemeAccentColor(null)
+        assertThat(store.getThemeAccentColorFlow().first()).isNull()
+    }
+
+    @Test
     fun `homeserver history is empty by default`() = runTest {
         val store = createStore()
         assertThat(store.getHomeserverHistoryFlow().first()).isEmpty()

@@ -45,6 +45,14 @@ interface AppPreferencesStore {
     fun getThemeFlow(): Flow<String?>
 
     /**
+     * @param color the accent color as an ARGB int, or `null` to go back to the default Compound accent.
+     */
+    suspend fun setThemeAccentColor(color: Int?)
+
+    /** The accent color the user has chosen as an ARGB int, or `null` when the default Compound accent should be used. */
+    fun getThemeAccentColorFlow(): Flow<Int?>
+
+    /**
      * @param expanded true to expand the other accounts section.
      */
     suspend fun setOtherAccountsExpanded(expanded: Boolean)

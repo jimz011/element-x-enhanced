@@ -11,4 +11,18 @@
     <string name="a11y_active">Active</string>
     <string name="a11y_inactive">Inactive</string>
     <string name="common_switch_account">Switch accounts</string>
+    <string name="common_accent_color">Accent color</string>
+    <string name="common_accent_color_default">Default</string>
+    <string name="common_accent_color_custom">Custom color (hex)</string>
+    <string name="common_accent_color_invalid">Enter a color like #0DBD8B</string>
+    <string name="common_accent_color_green">Green</string>
+    <string name="common_accent_color_blue">Blue</string>
+    <string name="common_accent_color_indigo">Indigo</string>
+    <string name="common_accent_color_purple">Purple</string>
+    <string name="common_accent_color_pink">Pink</string>
+    <string name="common_accent_color_red">Red</string>
+    <string name="common_accent_color_orange">Orange</string>
+    <string name="common_accent_color_yellow">Yellow</string>
+    <string name="common_accent_color_teal">Teal</string>
+    <string name="common_accent_color_gray">Gray</string>
 </resources>
