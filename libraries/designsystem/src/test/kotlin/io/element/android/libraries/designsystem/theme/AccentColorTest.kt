@@ -24,6 +24,34 @@ class AccentColorTest {
     }
 
     @Test
+    fun `the header and send button gradients follow the accent and keep their opacity`() {
+        val colors = compoundColorsLight.withAccent(blue)
+        val original = compoundColorsLight
+        assertThat(colors.gradientSubtleStop1.copy(alpha = 1f)).isEqualTo(blue)
+        assertThat(colors.gradientSubtleStop1.alpha).isEqualTo(original.gradientSubtleStop1.alpha)
+        assertThat(colors.gradientSubtleStop6.alpha).isEqualTo(0f)
+        assertThat(colors.gradientActionStop2).isEqualTo(blue)
+    }
+
+    @Test
+    fun `a lower intensity fades the tinted gradients and washes the color out`() {
+        val full = compoundColorsLight.withAccent(blue, intensity = 1f)
+        val soft = compoundColorsLight.withAccent(blue, intensity = 0.4f)
+        assertThat(soft.gradientSubtleStop1.alpha).isLessThan(full.gradientSubtleStop1.alpha)
+        // Less blue-ish: the gap between the blue and red channels shrinks
+        val fullGap = full.bgActionPrimaryRest.blue - full.bgActionPrimaryRest.red
+        val softGap = soft.bgActionPrimaryRest.blue - soft.bgActionPrimaryRest.red
+        assertThat(softGap).isLessThan(fullGap)
+    }
+
+    @Test
+    fun `intensity is clamped so the accent never turns fully grey`() {
+        val zero = compoundColorsLight.withAccent(blue, intensity = 0f)
+        val min = compoundColorsLight.withAccent(blue, intensity = MIN_ACCENT_INTENSITY)
+        assertThat(zero.bgActionPrimaryRest).isEqualTo(min.bgActionPrimaryRest)
+    }
+
+    @Test
     fun `only the accent tokens change`() {
         val colors = compoundColorsDark.withAccent(blue)
         assertThat(colors.bgCanvasDefault).isEqualTo(compoundColorsDark.bgCanvasDefault)

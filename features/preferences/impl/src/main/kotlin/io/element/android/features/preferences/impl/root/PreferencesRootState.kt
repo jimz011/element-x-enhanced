@@ -23,6 +23,7 @@ data class PreferencesRootState(
     val myUser: MatrixUser,
     val theme: ThemeOption,
     val accentColor: Int?,
+    val accentIntensityPercent: Int,
     val preferencesAccountState: PreferencesAccountState,
     val availableThemeOptions: ImmutableList<ThemeOption>,
     val userStatusState: UserStatusState?,

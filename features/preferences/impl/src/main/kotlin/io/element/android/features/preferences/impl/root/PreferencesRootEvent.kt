@@ -15,4 +15,7 @@ sealed interface PreferencesRootEvent {
 
     /** Sets the accent color of the app, as an ARGB int, or `null` to go back to the default one. */
     data class SetAccentColor(val color: Int?) : PreferencesRootEvent
+
+    /** Sets how strongly the accent color is applied, from 20 to 100. */
+    data class SetAccentIntensity(val percent: Int) : PreferencesRootEvent
 }

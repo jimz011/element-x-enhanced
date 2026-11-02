@@ -12,13 +12,18 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,8 +43,13 @@ import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.libraries.designsystem.components.dialogs.ListDialog
 import io.element.android.libraries.designsystem.components.list.TextFieldListItem
+import io.element.android.libraries.designsystem.theme.MIN_ACCENT_INTENSITY
 import io.element.android.libraries.designsystem.theme.components.Icon
+import io.element.android.libraries.designsystem.theme.components.Slider
+import io.element.android.libraries.designsystem.theme.components.Text
+import io.element.android.libraries.designsystem.theme.desaturated
 import io.element.android.libraries.ui.strings.CommonStrings
+import kotlin.math.roundToInt
 
 /** The colors offered as one-tap choices, as ARGB ints. */
 internal val accentColorPresets: List<Pair<Int, Int>> = listOf(
@@ -77,17 +87,19 @@ private const val RGB_MASK = 0xFFFFFF
 @Composable
 internal fun AccentColorDialog(
     currentColor: Int?,
-    onSubmit: (Int?) -> Unit,
+    currentIntensityPercent: Int,
+    onSubmit: (color: Int?, intensityPercent: Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var selected by remember { mutableStateOf(currentColor) }
+    var intensity by remember { mutableFloatStateOf(currentIntensityPercent / PERCENT) }
     var hex by remember { mutableStateOf(currentColor?.toHexColorString().orEmpty()) }
     val isHexValid = hex.isBlank() || parseHexColor(hex) != null
     ListDialog(
         title = stringResource(CommonStrings.common_accent_color),
         enabled = isHexValid,
         onSubmit = {
-            onSubmit(selected)
+            onSubmit(selected, (intensity * PERCENT).roundToInt())
             onDismiss()
         },
         onDismissRequest = onDismiss,
@@ -132,10 +144,57 @@ internal fun AccentColorDialog(
                 error = if (isHexValid) null else stringResource(CommonStrings.common_accent_color_invalid),
             )
         }
+        item {
+            IntensityControl(
+                color = selected,
+                intensity = intensity,
+                onIntensityChange = { intensity = it },
+            )
+        }
     }
 }
 
 private const val MAX_HEX_INPUT_LENGTH = 7
+private const val PERCENT = 100f
+
+/** A slider that softens the chosen color, with a bar showing how it will look. Does nothing for the default accent. */
+@Composable
+private fun IntensityControl(
+    color: Int?,
+    intensity: Float,
+    onIntensityChange: (Float) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(CommonStrings.common_accent_color_intensity),
+                style = ElementTheme.typography.fontBodyMdMedium,
+                color = ElementTheme.colors.textPrimary,
+            )
+            Text(
+                text = "${(intensity * PERCENT).roundToInt()}%",
+                style = ElementTheme.typography.fontBodyMdRegular,
+                color = ElementTheme.colors.textSecondary,
+            )
+        }
+        Slider(
+            value = intensity,
+            onValueChange = onIntensityChange,
+            valueRange = MIN_ACCENT_INTENSITY..1f,
+            enabled = color != null,
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(16.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(color?.let { Color(it).desaturated(intensity) } ?: ElementTheme.colors.bgSubtleSecondary),
+        )
+    }
+}
 
 /** A round color chip. A `null` [color] stands for "use the default accent". */
 @Composable

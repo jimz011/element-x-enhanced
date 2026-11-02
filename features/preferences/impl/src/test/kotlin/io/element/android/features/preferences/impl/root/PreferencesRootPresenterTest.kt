@@ -157,6 +157,22 @@ class PreferencesRootPresenterTest {
     }
 
     @Test
+    fun `present - change accent intensity`() = runTest {
+        createPreferencesRootPresenter().test {
+            // Skip until the initial data is loaded
+            skipItems(1)
+
+            with(awaitItem()) {
+                assertThat(accentIntensityPercent).isEqualTo(100)
+                eventSink(PreferencesRootEvent.SetAccentIntensity(55))
+            }
+            with(awaitItem()) {
+                assertThat(accentIntensityPercent).isEqualTo(55)
+            }
+        }
+    }
+
+    @Test
     fun `present - black theme option shown when feature flag enabled`() = runTest {
         createPreferencesRootPresenter(
             featureFlagService = FakeFeatureFlagService().apply {

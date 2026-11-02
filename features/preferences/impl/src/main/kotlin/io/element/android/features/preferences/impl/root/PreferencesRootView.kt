@@ -324,7 +324,11 @@ private fun AppSettingsSection(
     if (showAccentColorDialog) {
         AccentColorDialog(
             currentColor = state.accentColor,
-            onSubmit = { color -> state.eventSink(PreferencesRootEvent.SetAccentColor(color)) },
+            currentIntensityPercent = state.accentIntensityPercent,
+            onSubmit = { color, intensityPercent ->
+                state.eventSink(PreferencesRootEvent.SetAccentColor(color))
+                state.eventSink(PreferencesRootEvent.SetAccentIntensity(intensityPercent))
+            },
             onDismiss = { showAccentColorDialog = false },
         )
     }
@@ -344,7 +348,14 @@ private fun AppSettingsSection(
         ListItem(
             content = { Text(stringResource(id = CommonStrings.common_accent_color)) },
             supportingContent = {
-                Text(state.accentColor?.toHexColorString() ?: stringResource(CommonStrings.common_accent_color_default))
+                val color = state.accentColor?.toHexColorString()
+                Text(
+                    if (color == null) {
+                        stringResource(CommonStrings.common_accent_color_default)
+                    } else {
+                        "$color · ${state.accentIntensityPercent}%"
+                    }
+                )
             },
             leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Theme())),
             onClick = { showAccentColorDialog = true },

@@ -81,9 +81,13 @@ fun ElementThemeApp(
     val accentColor by remember {
         appPreferencesStore.getThemeAccentColorFlow()
     }.collectAsState(initial = null)
+    val accentIntensityPercent by remember {
+        appPreferencesStore.getThemeAccentIntensityFlow()
+    }.collectAsState(initial = 100)
     val accent = accentColor?.let { Color(it) }
-    val themedLight = remember(compoundLight, accent) { accent?.let(compoundLight::withAccent) ?: compoundLight }
-    val themedDark = remember(compoundDark, accent) { accent?.let(compoundDark::withAccent) ?: compoundDark }
+    val intensity = accentIntensityPercent / 100f
+    val themedLight = remember(compoundLight, accent, intensity) { accent?.let { compoundLight.withAccent(it, intensity) } ?: compoundLight }
+    val themedDark = remember(compoundDark, accent, intensity) { accent?.let { compoundDark.withAccent(it, intensity) } ?: compoundDark }
     CompositionLocalProvider(
         LocalBuildMeta provides buildMeta,
     ) {

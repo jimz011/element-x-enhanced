@@ -27,6 +27,7 @@ class InMemoryAppPreferencesStore(
     timelineMediaPreviewValue: MediaPreviewValue? = null,
     theme: String? = null,
     themeAccentColor: Int? = null,
+    themeAccentIntensity: Int = 100,
     liveLocationMinimumDistanceUpdate: Int = 10,
     logLevel: LogLevel = LogLevel.INFO,
     traceLogPacks: Set<TraceLogPack> = emptySet(),
@@ -43,6 +44,7 @@ class InMemoryAppPreferencesStore(
     private val customElementCallBaseUrl = MutableStateFlow(customElementCallBaseUrl)
     private val theme = MutableStateFlow(theme)
     private val themeAccentColor = MutableStateFlow(themeAccentColor)
+    private val themeAccentIntensity = MutableStateFlow(themeAccentIntensity)
     private val liveLocationMinimumDistanceUpdate = MutableStateFlow(liveLocationMinimumDistanceUpdate)
     private val logLevel = MutableStateFlow(logLevel)
     private val tracingLogPacks = MutableStateFlow(traceLogPacks)
@@ -94,6 +96,14 @@ class InMemoryAppPreferencesStore(
 
     override fun getThemeAccentColorFlow(): Flow<Int?> {
         return themeAccentColor
+    }
+
+    override suspend fun setThemeAccentIntensity(percent: Int) {
+        themeAccentIntensity.value = percent
+    }
+
+    override fun getThemeAccentIntensityFlow(): Flow<Int> {
+        return themeAccentIntensity
     }
 
     override suspend fun setLiveLocationMinimumDistanceInMetersUpdate(value: Int) {

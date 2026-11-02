@@ -33,6 +33,7 @@ private val developerModeKey = booleanPreferencesKey("developerMode")
 private val customElementCallBaseUrlKey = stringPreferencesKey("elementCallBaseUrl")
 private val themeKey = stringPreferencesKey("theme")
 private val themeAccentColorKey = intPreferencesKey("themeAccentColor")
+private val themeAccentIntensityKey = intPreferencesKey("themeAccentIntensity")
 private val hideInviteAvatarsKey = booleanPreferencesKey("hideInviteAvatars")
 private val otherAccountsExpandedKey = booleanPreferencesKey("otherAccountsExpanded")
 private val timelineMediaPreviewValueKey = stringPreferencesKey("timelineMediaPreviewValue")
@@ -50,6 +51,8 @@ private val callRingtoneDisplayNameKey = stringPreferencesKey("notificationCallR
 // URLs never contain a newline, so it is a safe delimiter to persist an ordered list in a single String.
 private const val HOMESERVER_HISTORY_DELIMITER = "\n"
 private const val MAX_HOMESERVER_HISTORY_SIZE = 20
+private const val MIN_ACCENT_INTENSITY_PERCENT = 20
+private const val MAX_ACCENT_INTENSITY_PERCENT = 100
 
 @ContributesBinding(AppScope::class)
 class DefaultAppPreferencesStore(
@@ -112,6 +115,18 @@ class DefaultAppPreferencesStore(
     override fun getThemeAccentColorFlow(): Flow<Int?> {
         return store.data.map { prefs ->
             prefs[themeAccentColorKey]
+        }
+    }
+
+    override suspend fun setThemeAccentIntensity(percent: Int) {
+        store.edit { prefs ->
+            prefs[themeAccentIntensityKey] = percent.coerceIn(MIN_ACCENT_INTENSITY_PERCENT, MAX_ACCENT_INTENSITY_PERCENT)
+        }
+    }
+
+    override fun getThemeAccentIntensityFlow(): Flow<Int> {
+        return store.data.map { prefs ->
+            prefs[themeAccentIntensityKey]?.coerceIn(MIN_ACCENT_INTENSITY_PERCENT, MAX_ACCENT_INTENSITY_PERCENT) ?: MAX_ACCENT_INTENSITY_PERCENT
         }
     }
 

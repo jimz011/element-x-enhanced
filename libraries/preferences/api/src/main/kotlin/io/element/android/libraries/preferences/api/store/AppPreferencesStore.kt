@@ -53,6 +53,14 @@ interface AppPreferencesStore {
     fun getThemeAccentColorFlow(): Flow<Int?>
 
     /**
+     * @param percent how strongly the accent color is applied, from 20 (muted) to 100 (the color as picked).
+     */
+    suspend fun setThemeAccentIntensity(percent: Int)
+
+    /** How strongly the accent color is applied, from 20 to 100; defaults to 100. */
+    fun getThemeAccentIntensityFlow(): Flow<Int>
+
+    /**
      * @param expanded true to expand the other accounts section.
      */
     suspend fun setOtherAccountsExpanded(expanded: Boolean)

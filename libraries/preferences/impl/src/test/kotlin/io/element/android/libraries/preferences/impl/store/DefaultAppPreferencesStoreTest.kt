@@ -68,6 +68,21 @@ class DefaultAppPreferencesStoreTest {
     }
 
     @Test
+    fun `theme accent intensity defaults to 100 and is kept within 20 and 100`() = runTest {
+        val store = createStore()
+        assertThat(store.getThemeAccentIntensityFlow().first()).isEqualTo(100)
+
+        store.setThemeAccentIntensity(60)
+        assertThat(store.getThemeAccentIntensityFlow().first()).isEqualTo(60)
+
+        store.setThemeAccentIntensity(0)
+        assertThat(store.getThemeAccentIntensityFlow().first()).isEqualTo(20)
+
+        store.setThemeAccentIntensity(500)
+        assertThat(store.getThemeAccentIntensityFlow().first()).isEqualTo(100)
+    }
+
+    @Test
     fun `homeserver history is empty by default`() = runTest {
         val store = createStore()
         assertThat(store.getHomeserverHistoryFlow().first()).isEmpty()
