@@ -42,6 +42,7 @@ class MarkAsReadActionFactory(
         intent.putExtra(NotificationBroadcastReceiver.KEY_SESSION_ID, sessionId)
         intent.putExtra(NotificationBroadcastReceiver.KEY_ROOM_ID, roomId)
         threadId?.let { intent.putExtra(NotificationBroadcastReceiver.KEY_THREAD_ID, threadId.value) }
+        roomInfo.latestEventId?.let { intent.putExtra(NotificationBroadcastReceiver.KEY_EVENT_ID, it.value) }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
             clock.epochMillis().toInt(),

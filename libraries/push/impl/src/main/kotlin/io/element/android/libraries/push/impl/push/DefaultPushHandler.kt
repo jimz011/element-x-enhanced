@@ -130,6 +130,15 @@ class DefaultPushHandler(
                 return false
             }
 
+            // The same push can be delivered more than once (providers replay queued messages, or the server retries). Saving it again
+            // would reset an already handled request to pending, and the notification would be shown again, even for a message that has
+            // been read in the meantime.
+            val existingRequest = pushHistoryService.getPushRequest(userId, pushData.eventId).getOrNull()
+            if (existingRequest != null && existingRequest.status != PushRequestStatus.PENDING.value) {
+                Timber.tag(loggerTag.value).d("Ignoring a repeated push for an event that was already handled: ${pushData.eventId}")
+                return true
+            }
+
             val pushRequest = PushRequest(
                 pushDate = systemClock.epochMillis(),
                 providerInfo = providerInfo,

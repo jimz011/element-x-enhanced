@@ -51,6 +51,12 @@ class DefaultPushHistoryService(
         }
     }
 
+    override suspend fun getPushRequest(sessionId: SessionId, eventId: EventId): Result<PushRequest?> = withContext(dispatchers.io) {
+        runCatchingExceptions {
+            pushDatabase.pushRequestQueries.selectBySessionAndEvent(sessionId.value, eventId.value).executeAsOneOrNull()
+        }
+    }
+
     override suspend fun getPendingPushRequests(sessionId: SessionId, since: Instant?): Result<List<PushRequest>> = withContext(dispatchers.io) {
         runCatchingExceptions {
             pushDatabase.transactionWithResult {

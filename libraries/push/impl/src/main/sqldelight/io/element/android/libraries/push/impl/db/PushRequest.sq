@@ -11,6 +11,9 @@ CREATE TABLE PushRequest (
 
 CREATE INDEX PushRequestSessionAndStatus ON PushRequest (sessionId, status);
 
+selectBySessionAndEvent:
+SELECT * FROM PushRequest WHERE sessionId = ? AND eventId = ?;
+
 selectAllPendingForSession:
 SELECT * FROM PushRequest WHERE status = 0 AND sessionId = ? AND pushDate > ? ORDER BY pushDate ASC;
 

@@ -27,6 +27,7 @@ class FakePushHistoryService(
     ) -> Unit = { _, _, _, _, _, _, _ -> lambdaError() },
     private val enqueuePushRequest: (PushRequest) -> Result<Unit> = { lambdaError() },
     private val replacePushRequests: (List<PushRequest>) -> Result<Unit> = { lambdaError() },
+    private val getPushRequest: (SessionId, EventId) -> Result<PushRequest?> = { _, _ -> Result.success(null) },
     private val getPendingPushRequests: (SessionId, Instant?) -> Result<List<PushRequest>> = { _, _ -> lambdaError() },
     private val removeOldPushRequests: (SessionId) -> Result<Unit> = { lambdaError() },
 ) : PushHistoryService {
@@ -56,6 +57,10 @@ class FakePushHistoryService(
 
     override suspend fun insertOrUpdatePushRequests(pushRequests: List<PushRequest>): Result<Unit> {
         return replacePushRequests.invoke(pushRequests)
+    }
+
+    override suspend fun getPushRequest(sessionId: SessionId, eventId: EventId): Result<PushRequest?> {
+        return getPushRequest.invoke(sessionId, eventId)
     }
 
     override suspend fun getPendingPushRequests(sessionId: SessionId, since: Instant?): Result<List<PushRequest>> {

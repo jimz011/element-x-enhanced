@@ -9,6 +9,7 @@
 package io.element.android.libraries.push.impl.notifications
 
 import android.content.Intent
+import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
@@ -247,6 +248,44 @@ class NotificationBroadcastReceiverHandlerTest : RobolectricTest() {
             .isCalledOnce()
             .with(value(A_SESSION_ID), value(A_ROOM_ID))
         markAsReadResult.assertions().isCalledOnce().with(value(expectedReceiptType))
+    }
+
+    @Test
+    fun `Test mark room as read sends the receipts for the notified event instead of the timeline's latest one`() = runTest {
+        val sessionPreferencesStore = FakeSessionPreferencesStoreFactory(
+            getLambda = { _, _ -> InMemorySessionPreferencesStore(isSendPublicReadReceiptsEnabled = true) }
+        )
+        val receipts = mutableListOf<Pair<EventId, ReceiptType>>()
+        val markAsReadResult = lambdaRecorder<ReceiptType, Result<Unit>> { Result.success(Unit) }
+        val timeline = FakeTimeline(markAsReadResult = markAsReadResult).apply {
+            sendReadReceiptLambda = { eventId, receiptType ->
+                receipts += eventId to receiptType
+                Result.success(Unit)
+            }
+        }
+        val joinedRoom = FakeJoinedRoom(
+            baseRoom = FakeBaseRoom(),
+            liveTimeline = timeline,
+            createTimelineResult = { Result.success(timeline) },
+        )
+        val sut = createNotificationBroadcastReceiverHandler(
+            sessionPreferencesStore = sessionPreferencesStore,
+            joinedRoom = joinedRoom,
+            notificationCleaner = FakeNotificationCleaner(clearMessagesForRoomLambda = { _, _ -> }),
+        )
+        sut.onReceive(
+            createIntent(
+                action = actionIds.markRoomRead,
+                roomId = A_ROOM_ID,
+                eventId = AN_EVENT_ID,
+            ),
+        )
+        runCurrent()
+        assertThat(receipts).containsExactly(
+            AN_EVENT_ID to ReceiptType.READ,
+            AN_EVENT_ID to ReceiptType.FULLY_READ,
+        ).inOrder()
+        markAsReadResult.assertions().isNeverCalled()
     }
 
     @Test

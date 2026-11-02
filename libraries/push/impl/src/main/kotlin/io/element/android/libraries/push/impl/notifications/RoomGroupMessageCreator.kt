@@ -76,6 +76,7 @@ class DefaultRoomGroupMessageCreator(
                 shouldBing = events.any { it.noisy },
                 customSound = events.last().soundName,
                 isUpdated = events.last().let { it.isUpdated || it.outGoingMessage },
+                latestEventId = lastKnownRoomEvent.eventId,
             ),
             threadId = threadId,
             largeIcon = largeBitmap,

@@ -109,6 +109,46 @@ class DefaultPushHandlerTest {
     }
 
     @Test
+    fun `when a push is repeated for an event that was already handled, it is ignored`() = runTest {
+        val aPushData = PushData(
+            eventId = AN_EVENT_ID,
+            roomId = A_ROOM_ID,
+            unread = 0,
+            clientSecret = A_SECRET,
+        )
+        val alreadyHandled = PushRequest(
+            pushDate = 0L,
+            providerInfo = A_PUSHER_INFO,
+            eventId = AN_EVENT_ID.value,
+            roomId = A_ROOM_ID.value,
+            sessionId = A_USER_ID.value,
+            status = PushRequestStatus.SUCCESS.value,
+            retries = 0L,
+        )
+        val enqueuePushRequestResult = lambdaRecorder<PushRequest, Result<Unit>> { Result.success(Unit) }
+        val pushHistoryService = FakePushHistoryService(
+            enqueuePushRequest = enqueuePushRequestResult,
+            getPushRequest = { _, _ -> Result.success(alreadyHandled) },
+        )
+        val submitWorkLambda = lambdaRecorder<WorkManagerRequestBuilder, Unit> {}
+
+        val defaultPushHandler = createDefaultPushHandler(
+            pushClientSecret = FakePushClientSecret(
+                getUserIdFromSecretResult = { A_USER_ID }
+            ),
+            workManagerScheduler = FakeWorkManagerScheduler(submitLambda = submitWorkLambda),
+            pushHistoryService = pushHistoryService,
+        )
+        defaultPushHandler.handle(aPushData, A_PUSHER_INFO)
+
+        advanceTimeBy(300.milliseconds)
+
+        // Saving it again would reset the request to pending and show the notification a second time
+        enqueuePushRequestResult.assertions().isNeverCalled()
+        submitWorkLambda.assertions().isNeverCalled()
+    }
+
+    @Test
     fun `when classical PushData is received, but notifications are disabled, nothing happen`() =
         runTest {
             val incrementPushCounterResult = lambdaRecorder<Unit> {}

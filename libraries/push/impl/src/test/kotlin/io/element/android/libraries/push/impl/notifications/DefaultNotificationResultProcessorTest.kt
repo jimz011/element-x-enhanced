@@ -45,6 +45,8 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -357,6 +359,47 @@ class DefaultNotificationResultProcessorTest {
         processor.stop()
     }
 
+    @Test
+    fun `a message notification for an event older than a day is not shown`() = runTest {
+        val onNotifiableEventsReceived = lambdaRecorder<List<NotifiableEvent>, Unit> {}
+        val now = 10.days.inWholeMilliseconds
+        val processor = createDefaultNotificationResultProcessor(
+            systemClock = FakeSystemClock(epochMillisResult = now),
+            pushHistoryService = FakePushHistoryService(onPushReceivedResult = { _, _, _, _, _, _, _ -> }),
+            onNotifiableEventsReceived = onNotifiableEventsReceived,
+        )
+        val oldEvent = aNotifiableMessageEvent(timestamp = now - 2.days.inWholeMilliseconds)
+
+        runningProcessor(processor) {
+            emit(mapOf(aPushRequest() to Result.success(ResolvedPushEvent.Event(oldEvent))))
+        }
+
+        advanceTimeBy(300.milliseconds)
+
+        onNotifiableEventsReceived.assertions().isNeverCalled()
+    }
+
+    @Test
+    fun `a message notification for a recent event is still shown`() = runTest {
+        val onNotifiableEventsReceived = lambdaRecorder<List<NotifiableEvent>, Unit> {}
+        val now = 10.days.inWholeMilliseconds
+        val processor = createDefaultNotificationResultProcessor(
+            systemClock = FakeSystemClock(epochMillisResult = now),
+            pushHistoryService = FakePushHistoryService(onPushReceivedResult = { _, _, _, _, _, _, _ -> }),
+            onNotifiableEventsReceived = onNotifiableEventsReceived,
+        )
+        // A push delivered a few hours late, for instance after the phone was offline, is still wanted
+        val lateEvent = aNotifiableMessageEvent(timestamp = now - 5.hours.inWholeMilliseconds)
+
+        runningProcessor(processor) {
+            emit(mapOf(aPushRequest() to Result.success(ResolvedPushEvent.Event(lateEvent))))
+        }
+
+        advanceTimeBy(300.milliseconds)
+
+        onNotifiableEventsReceived.assertions().isCalledOnce()
+    }
+
     private fun TestScope.createDefaultNotificationResultProcessor(
         systemClock: FakeSystemClock = FakeSystemClock(),
         pushHistoryService: FakePushHistoryService = FakePushHistoryService(),
@@ -377,6 +420,7 @@ class DefaultNotificationResultProcessorTest {
         onNotifiableEventReceived = FakeOnNotifiableEventReceived(onNotifiableEventsReceived),
         elementCallEntryPoint = elementCallEntryPoint,
         notificationChannels = notificationChannels,
+        systemClock = systemClock,
         coroutineScope = coroutineScope,
     )
 }

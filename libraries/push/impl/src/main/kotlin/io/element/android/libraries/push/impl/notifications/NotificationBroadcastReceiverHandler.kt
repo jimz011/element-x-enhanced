@@ -79,7 +79,7 @@ class NotificationBroadcastReceiverHandler(
                 } else {
                     notificationCleaner.clearMessagesForThread(sessionId, roomId, threadId)
                 }
-                handleMarkAsRead(sessionId, roomId, threadId)
+                handleMarkAsRead(sessionId, roomId, threadId, eventId)
             }
             actionIds.join -> if (roomId != null) {
                 notificationCleaner.clearMembershipNotificationForRoom(sessionId, roomId)
@@ -103,7 +103,12 @@ class NotificationBroadcastReceiverHandler(
     }
 
     @Suppress("unused")
-    private fun handleMarkAsRead(sessionId: SessionId, roomId: RoomId, threadId: ThreadId?) = appCoroutineScope.launch {
+    private fun handleMarkAsRead(
+        sessionId: SessionId,
+        roomId: RoomId,
+        threadId: ThreadId?,
+        latestEventId: EventId?,
+    ) = appCoroutineScope.launch {
         val client = matrixClientProvider.getOrRestore(sessionId).getOrNull() ?: return@launch
         val isSendPublicReadReceiptsEnabled = sessionPreferencesStore.get(
             sessionId = sessionId,
@@ -125,7 +130,16 @@ class NotificationBroadcastReceiverHandler(
         } else {
             room.liveTimeline
         }
-        timeline?.markAsRead(receiptType)
+        // Mark as read from a notification usually runs in a process that has not synced since the message arrived, so the
+        // timeline's latest event is an older one: marking "the whole timeline" would then leave the notified message unread on the
+        // server, and the room (and its notification) would come back as unread. Point the receipts at the notified event instead.
+        val markAsReadResult = if (timeline != null && latestEventId != null) {
+            timeline.sendReadReceipt(latestEventId, receiptType)
+                .also { timeline.sendReadReceipt(latestEventId, ReceiptType.FULLY_READ) }
+        } else {
+            timeline?.markAsRead(receiptType)
+        }
+        markAsReadResult
             ?.onSuccess {
                 if (threadId != null) {
                     Timber.d("Marked thread $threadId in room $roomId as read with receipt type $receiptType")

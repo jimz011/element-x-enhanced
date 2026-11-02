@@ -41,6 +41,11 @@ interface PushHistoryService {
     suspend fun insertOrUpdatePushRequests(pushRequests: List<PushRequest>): Result<Unit>
 
     /**
+     * Gets the push request stored for an event, if any, whatever its status.
+     */
+    suspend fun getPushRequest(sessionId: SessionId, eventId: EventId): Result<PushRequest?>
+
+    /**
      * Gets [PushRequestStatus.PENDING] push requests from the local database for a [SessionId].
      * A [since] param can optionally be provided to only return those received after that date.
      */

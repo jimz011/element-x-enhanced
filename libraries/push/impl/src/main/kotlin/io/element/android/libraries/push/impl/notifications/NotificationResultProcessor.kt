@@ -26,12 +26,14 @@ import io.element.android.libraries.push.impl.history.onUnableToResolveEvent
 import io.element.android.libraries.push.impl.notifications.channels.NotificationChannels
 import io.element.android.libraries.push.impl.notifications.model.FallbackNotifiableEvent
 import io.element.android.libraries.push.impl.notifications.model.NotifiableEvent
+import io.element.android.libraries.push.impl.notifications.model.NotifiableMessageEvent
 import io.element.android.libraries.push.impl.notifications.model.NotifiableRingingCallEvent
 import io.element.android.libraries.push.impl.notifications.model.ResolvedPushEvent
 import io.element.android.libraries.push.impl.push.MutableBatteryOptimizationStore
 import io.element.android.libraries.push.impl.push.OnNotifiableEventReceived
 import io.element.android.libraries.push.impl.push.OnRedactedEventReceived
 import io.element.android.libraries.pushstore.api.UserPushStoreFactory
+import io.element.android.services.toolbox.api.systemclock.SystemClock
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -43,8 +45,15 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import timber.log.Timber
+import kotlin.time.Duration.Companion.days
 
 private const val TAG = "NotifResultProcessor"
+
+/**
+ * Pushes can be delivered long after the event was sent (the push service queues them while the device is offline, and some providers replay
+ * them), and by then the user has usually read the message somewhere else. A message notification for an event older than this is dropped.
+ */
+private val MAX_MESSAGE_NOTIFICATION_AGE = 1.days
 
 interface NotificationResultProcessor {
     /**
@@ -67,6 +76,7 @@ class DefaultNotificationResultProcessor(
     private val onNotifiableEventReceived: OnNotifiableEventReceived,
     private val elementCallEntryPoint: ElementCallEntryPoint,
     private val notificationChannels: NotificationChannels,
+    private val systemClock: SystemClock,
     @AppCoroutineScope private val coroutineScope: CoroutineScope,
 ) : NotificationResultProcessor {
     private data class PendingResults(
@@ -222,7 +232,12 @@ class DefaultNotificationResultProcessor(
             // We categorise each result into either a NotifiableEvent or a Redaction
             when (event) {
                 is ResolvedPushEvent.Event -> {
-                    events.add(event.notifiableEvent)
+                    val notifiableEvent = event.notifiableEvent
+                    if (notifiableEvent is NotifiableMessageEvent && notifiableEvent.isTooOldToNotify()) {
+                        Timber.tag(TAG).w("Not notifying for ${notifiableEvent.eventId.value}: the event is too old")
+                        continue
+                    }
+                    events.add(notifiableEvent)
                 }
                 is ResolvedPushEvent.Redaction -> {
                     redactions.add(event)
@@ -246,6 +261,10 @@ class DefaultNotificationResultProcessor(
         if (nonRingingCallEvents.isNotEmpty()) {
             onNotifiableEventReceived.onNotifiableEventsReceived(nonRingingCallEvents)
         }
+    }
+
+    private fun NotifiableMessageEvent.isTooOldToNotify(): Boolean {
+        return systemClock.epochMillis() - timestamp > MAX_MESSAGE_NOTIFICATION_AGE.inWholeMilliseconds
     }
 
     private suspend fun handleRingingCallEvent(notifiableEvent: NotifiableRingingCallEvent) {

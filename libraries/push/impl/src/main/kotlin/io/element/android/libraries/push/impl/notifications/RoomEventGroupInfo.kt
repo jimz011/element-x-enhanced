@@ -8,6 +8,7 @@
 
 package io.element.android.libraries.push.impl.notifications
 
+import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.SessionId
 
@@ -26,4 +27,6 @@ data class RoomEventGroupInfo(
     val customSound: String? = null,
     val hasSmartReplyError: Boolean = false,
     val isUpdated: Boolean = false,
+    // The newest event in the group, which "Mark as read" has to send the read receipt for
+    val latestEventId: EventId? = null,
 )
