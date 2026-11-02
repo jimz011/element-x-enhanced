@@ -59,8 +59,8 @@ private const val ESCAPE_HEADROOM = 8
  * **Prefix matching.** A bare `sant*` is no use: tantivy's grammar only gives `*` a meaning after a quoted
  * phrase of two or more terms, so a single typed word is searched as the exact term and `Santi` finds
  * nothing even when `Santiago` is there. Each plain word (letters and digits only) is therefore sent as
- * `+(word /word.*/)`: the word itself OR a regex over the indexed terms starting with it, which must
- * hold. The exact term stays in the group so whole-word hits still outscore prefix hits, which are
+ * a mandatory group of the word itself OR a slash-delimited regex matching the indexed terms that start
+ * with it (the word followed by dot-star), which must hold. The exact term stays in the group so whole-word hits still outscore prefix hits, which are
  * constant-score. Terms are indexed lowercased by the default analyzer, so the word is lowercased too.
  * Words containing punctuation (`C++`, URLs, dates) keep their literal, escaped form.
  *
