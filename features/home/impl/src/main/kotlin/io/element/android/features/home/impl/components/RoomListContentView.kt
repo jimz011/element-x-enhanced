@@ -34,10 +34,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
@@ -59,6 +64,7 @@ import io.element.android.features.home.impl.roomlist.buildClassicRoomGroups
 import io.element.android.features.home.impl.roomlist.toRoomListBanner
 import io.element.android.features.home.impl.spacefilters.SpaceFiltersState
 import io.element.android.features.home.impl.spacefilters.anUnselectedSpaceFiltersState
+import io.element.android.libraries.designsystem.colors.gradientSubtleColors
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Button
@@ -93,6 +99,10 @@ fun RoomListContentView(
     onCreateRoomClick: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
+    // Draws the header gradient from the very top of the screen (headerGradientTopExtent above this view, i.e. behind the top bar)
+    // down to the filter chips, so the header colour runs through the Recent row instead of stopping under the title.
+    showHeaderGradient: Boolean = false,
+    headerGradientTopExtent: Dp = 0.dp,
 ) {
     when (contentState) {
         is RoomListContentState.Skeleton -> {
@@ -117,12 +127,14 @@ fun RoomListContentView(
             // the filter chips stay up even when the current filter's results are empty -- which is
             // why they live in this wrapping Column rather than as the room LazyColumn's first items.
             Column(modifier = modifier) {
-                if (quickAccessSummaries.isNotEmpty()) {
-                    ClassicQuickAccessView(
-                        rooms = quickAccessSummaries,
-                        onRoomClick = onRoomClick,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
+                Column(modifier = Modifier.headerGradientBehind(isVisible = showHeaderGradient, topExtent = headerGradientTopExtent)) {
+                    if (quickAccessSummaries.isNotEmpty()) {
+                        ClassicQuickAccessView(
+                            rooms = quickAccessSummaries,
+                            onRoomClick = onRoomClick,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
                 }
                 RoomListFiltersView(state = filtersState, modifier = Modifier.padding(bottom = 12.dp))
                 RoomsView(
@@ -140,6 +152,24 @@ fun RoomListContentView(
                 )
             }
         }
+    }
+}
+
+/**
+ * Paints the subtle header gradient behind this node and [topExtent] above it, fading out at the node's bottom edge.
+ * Drawing is not clipped to the node, so it can reach up behind the top bar that sits above the list.
+ */
+@Composable
+private fun Modifier.headerGradientBehind(isVisible: Boolean, topExtent: Dp): Modifier {
+    if (!isVisible) return this
+    val colors = gradientSubtleColors()
+    return drawBehind {
+        val extent = topExtent.toPx()
+        drawRect(
+            brush = Brush.verticalGradient(colors = colors, startY = -extent, endY = size.height),
+            topLeft = Offset(0f, -extent),
+            size = Size(size.width, size.height + extent),
+        )
     }
 }
 

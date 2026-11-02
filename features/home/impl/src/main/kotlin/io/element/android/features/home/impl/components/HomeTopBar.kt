@@ -106,11 +106,13 @@ fun HomeTopBar(
     spaceFiltersState: SpaceFiltersState,
     filtersState: RoomListFiltersState,
     modifier: Modifier = Modifier,
+    // False when the screen draws the header gradient itself, so it can reach further down than this bar.
+    showGradient: Boolean = true,
 ) {
     val contentPadding = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal).asPaddingValues()
     Column(
         modifier = modifier.backgroundVerticalGradient(
-            isVisible = !areSearchResultsDisplayed,
+            isVisible = showGradient && !areSearchResultsDisplayed,
         ),
     ) {
         TopAppBar(

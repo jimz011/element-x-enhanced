@@ -46,6 +46,7 @@ import io.element.android.features.home.impl.components.RoomListMenuAction
 import io.element.android.features.home.impl.filters.RoomListFilter
 import io.element.android.features.home.impl.filters.RoomListFiltersEvent
 import io.element.android.features.home.impl.model.RoomListRoomSummary
+import io.element.android.features.home.impl.roomlist.RoomListContentState
 import io.element.android.features.home.impl.roomlist.RoomListContextMenu
 import io.element.android.features.home.impl.roomlist.RoomListDeclineInviteMenu
 import io.element.android.features.home.impl.roomlist.RoomListEvent
@@ -200,6 +201,15 @@ private fun HomeScaffold(
     val roomsLazyListState = rememberLazyListState()
     val spacesLazyListState = rememberLazyListState()
 
+    val areSearchResultsDisplayed = if (roomListState.globalSearchState.isEnabled) {
+        roomListState.globalSearchState.isSearchActive
+    } else {
+        roomListState.searchState.isSearchActive
+    }
+    // With rooms on screen, the header gradient is drawn by RoomListContentView so it can run down to the filter chips
+    val isHeaderGradientDrawnByList = state.currentHomeNavigationBarItem == HomeNavigationBarItem.Chats &&
+        roomListState.contentState is RoomListContentState.Rooms
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -207,11 +217,7 @@ private fun HomeScaffold(
                 selectedNavigationItem = state.currentHomeNavigationBarItem,
                 currentUserAndNeighbors = state.currentUserAndNeighbors,
                 showAvatarIndicator = state.showAvatarIndicator,
-                areSearchResultsDisplayed = if (roomListState.globalSearchState.isEnabled) {
-                    roomListState.globalSearchState.isSearchActive
-                } else {
-                    roomListState.searchState.isSearchActive
-                },
+                areSearchResultsDisplayed = areSearchResultsDisplayed,
                 onToggleSearch = {
                     if (roomListState.globalSearchState.isEnabled) {
                         roomListState.globalSearchState.eventSink(GlobalSearchEvent.ToggleSearchVisibility)
@@ -230,6 +236,7 @@ private fun HomeScaffold(
                 spaceFiltersState = roomListState.spaceFiltersState,
                 filtersState = roomListState.filtersState,
                 canReportBug = state.canReportBug,
+                showGradient = !isHeaderGradientDrawnByList,
             )
         },
         floatingActionButton = {
@@ -283,7 +290,9 @@ private fun HomeScaffold(
                         contentPadding = lazyColumnContentPadding + contentPadding,
                         modifier = Modifier
                             .padding(outerPadding)
-                            .consumeWindowInsets(outerPadding)
+                            .consumeWindowInsets(outerPadding),
+                        showHeaderGradient = !areSearchResultsDisplayed,
+                        headerGradientTopExtent = outerPadding.calculateTopPadding(),
                     )
                     val isDirectMessagesSelected = roomListState.filtersState
                         .selectedFilters()
