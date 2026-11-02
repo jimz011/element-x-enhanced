@@ -23,12 +23,12 @@ class TantivyQueryEscaperTest {
         // unrelated hits ranked by relevance, with the message actually wanted nowhere in it.
         // Each `+` is a Must clause, which is what `set_conjunction_by_default()` would produce if
         // the FFI let us call it.
-        assertThat("design review notes".escapeForTantivy()).isEqualTo("+design +review +notes")
+        assertThat("design review notes".escapeForTantivy()).isEqualTo("+(design /design.*/) +(review /review.*/) +(notes /notes.*/)")
     }
 
     @Test
     fun `a single word query is a conjunction of one`() {
-        assertThat("photo".escapeForTantivy()).isEqualTo("+photo")
+        assertThat("photo".escapeForTantivy()).isEqualTo("+(photo /photo.*/)")
     }
 
     @Test
@@ -87,7 +87,7 @@ class TantivyQueryEscaperTest {
     fun `an unclosed quote no longer fails the search`() {
         // Why quotes are escaped at all: an odd number of quotes is a syntax error today, and
         // half-typed quotes happen constantly on a mobile keyboard.
-        assertThat("\"unclosed phrase".escapeForTantivy()).isEqualTo("+\\\"unclosed +phrase")
+        assertThat("\"unclosed phrase".escapeForTantivy()).isEqualTo("+\\\"unclosed +(phrase /phrase.*/)")
     }
 
     @Test
@@ -120,7 +120,7 @@ class TantivyQueryEscaperTest {
         // A uniformity choice rather than purely an error fix: the query is literal text, so
         // `a AND b` searches for two words instead of silently switching to boolean AND — which is
         // now what every query does anyway.
-        assertThat("hello NOT".escapeForTantivy()).isEqualTo("+hello +\\NOT")
+        assertThat("hello NOT".escapeForTantivy()).isEqualTo("+(hello /hello.*/) +(not /not.*/)")
     }
 
     @Test
@@ -129,8 +129,8 @@ class TantivyQueryEscaperTest {
         // nothing. As a Must clause a token that indexes no terms can only ever subtract, so an
         // emoji typed alongside real words would silently empty the result set. Left as a Should
         // clause it is inert, which is what it was before this change too.
-        assertThat("photo :)".escapeForTantivy()).isEqualTo("+photo \\:\\)")
-        assertThat("fotoğraf 📷".escapeForTantivy()).isEqualTo("+fotoğraf 📷")
+        assertThat("photo :)".escapeForTantivy()).isEqualTo("+(photo /photo.*/) \\:\\)")
+        assertThat("fotoğraf 📷".escapeForTantivy()).isEqualTo("+(fotoğraf /fotoğraf.*/) 📷")
     }
 
     @Test
@@ -151,14 +151,35 @@ class TantivyQueryEscaperTest {
     fun `non-ascii words are mandatory like any other`() {
         // The account this was built for is Turkish. Kotlin's isLetterOrDigit is Unicode-aware, so
         // no accented or non-Latin word is mistaken for punctuation and demoted.
-        assertThat("fotoğrafa bak".escapeForTantivy()).isEqualTo("+fotoğrafa +bak")
+        assertThat("fotoğrafa bak".escapeForTantivy()).isEqualTo("+(fotoğrafa /fotoğrafa.*/) +(bak /bak.*/)")
     }
 
     @Test
     fun `runs of whitespace collapse and the query is trimmed`() {
         // Semantically neutral to tantivy — whitespace is only a separator — but it is an
         // observable change to the string we hand over, so it is pinned.
-        assertThat("   spaced   out  ".escapeForTantivy()).isEqualTo("+spaced +out")
+        assertThat("   spaced   out  ".escapeForTantivy()).isEqualTo("+(spaced /spaced.*/) +(out /out.*/)")
+    }
+
+    @Test
+    fun `a partly typed word also matches longer words starting with it`() {
+        // The bug this fixes: searching `Santi` found nothing while `Santiago` did, because tantivy
+        // reads a bare `Santi*` as the exact term. The regex alternative matches every indexed term
+        // that starts with the typed letters, and the exact term stays in the group for ranking.
+        assertThat("Santi".escapeForTantivy()).isEqualTo("+(santi /santi.*/)")
+    }
+
+    @Test
+    fun `the prefix is lowercased because terms are indexed lowercased`() {
+        assertThat("SANT".escapeForTantivy()).isEqualTo("+(sant /sant.*/)")
+        assertThat("Santiago trip".escapeForTantivy()).isEqualTo("+(santiago /santiago.*/) +(trip /trip.*/)")
+    }
+
+    @Test
+    fun `a word with punctuation is not turned into a prefix`() {
+        // Prefixing across a separator would never match: the analyzer splits `foo-bar` into two
+        // terms, so a regex for the whole token finds neither.
+        assertThat("foo-bar".escapeForTantivy()).isEqualTo("+foo-bar")
     }
 
     @Test

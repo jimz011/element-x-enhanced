@@ -56,6 +56,14 @@ private const val ESCAPE_HEADROOM = 8
  * first would hand the escaper its own operator and produce a literal `\+`. That parses cleanly and
  * silently restores OR, so it cannot be caught by anything but an assertion on the exact string.
  *
+ * **Prefix matching.** A bare `sant*` is no use: tantivy's grammar only gives `*` a meaning after a quoted
+ * phrase of two or more terms, so a single typed word is searched as the exact term and `Santi` finds
+ * nothing even when `Santiago` is there. Each plain word (letters and digits only) is therefore sent as
+ * `+(word /word.*/)`: the word itself OR a regex over the indexed terms starting with it, which must
+ * hold. The exact term stays in the group so whole-word hits still outscore prefix hits, which are
+ * constant-score. Terms are indexed lowercased by the default analyzer, so the word is lowercased too.
+ * Words containing punctuation (`C++`, URLs, dates) keep their literal, escaped form.
+ *
  * The costs, stated plainly: deliberate `"phrase"`, `-exclude` and boolean syntax stop working as
  * operators; and a query is now only as good as its worst word — one typo, or one word the user
  * misremembers, empties the result set where before it degraded to partial matches.
@@ -70,7 +78,11 @@ internal fun String.escapeForTantivy(): String =
             // emoji indexes no terms at all. Required, such a token could only ever subtract, and a
             // single emoji beside real words would silently empty the results. Optional, it is
             // inert — which is what it was before conjunctions too.
-            if (token.any(Char::isLetterOrDigit)) "+${token.escapeToken()}" else token.escapeToken()
+            when {
+                token.all(Char::isLetterOrDigit) -> token.lowercase().let { word -> "+($word /$word.*/)" }
+                token.any(Char::isLetterOrDigit) -> "+${token.escapeToken()}"
+                else -> token.escapeToken()
+            }
         }
 
 private fun String.escapeToken(): String = buildString(length + ESCAPE_HEADROOM) {
