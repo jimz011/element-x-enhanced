@@ -13,8 +13,8 @@ import io.element.android.features.messages.impl.timeline.factories.event.isAnim
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemImageContent
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemImageContent
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemVideoContent
-import io.element.android.features.messages.impl.utils.FakeTextPillificationHelper
 import io.element.android.features.messages.test.timeline.FakeHtmlConverterProvider
+import io.element.android.features.messages.test.timeline.FakeTextPillificator
 import io.element.android.libraries.androidutils.filesize.FakeFileSizeFormatter
 import io.element.android.libraries.core.mimetype.MimeTypes
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
@@ -25,7 +25,7 @@ import io.element.android.libraries.matrix.api.timeline.item.event.MessageConten
 import io.element.android.libraries.matrix.test.A_USER_ID
 import io.element.android.libraries.matrix.test.permalink.FakePermalinkParser
 import io.element.android.libraries.matrix.test.timeline.aProfileDetails
-import io.element.android.libraries.matrix.ui.media.MediaRequestData
+import io.element.android.libraries.matrixmedia.api.MediaRequestData
 import io.element.android.libraries.mediaviewer.test.util.FileExtensionExtractorWithoutValidation
 import io.element.android.tests.testutils.robolectric.RobolectricTest
 import kotlinx.coroutines.test.runTest
@@ -86,7 +86,7 @@ class ReceivedMediaPreviewTest : RobolectricTest() {
             FileExtensionExtractorWithoutValidation(),
             FakeHtmlConverterProvider(),
             FakePermalinkParser(),
-            FakeTextPillificationHelper(),
+            FakeTextPillificator(),
             FakeHtmlMessageParser(),
             FakeFeatureFlagService(),
         )

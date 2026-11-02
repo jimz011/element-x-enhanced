@@ -6,8 +6,6 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-@file:OptIn(ExperimentalHazeMaterialsApi::class)
-
 package io.element.android.features.home.impl
 
 import androidx.activity.compose.BackHandler
@@ -28,7 +26,6 @@ import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -40,14 +37,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
-import dev.chrisbanes.haze.rememberHazeState
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.home.impl.components.HomeTopBar
+import io.element.android.features.home.impl.components.MultiAccountAnnouncementBottomSheet
 import io.element.android.features.home.impl.components.RoomListContentView
 import io.element.android.features.home.impl.components.RoomListMenuAction
 import io.element.android.features.home.impl.filters.RoomListFilter
@@ -72,13 +65,13 @@ import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.FloatingActionButton
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.Scaffold
-import io.element.android.libraries.designsystem.theme.unreadIndicator
 import io.element.android.libraries.designsystem.utils.lazyColumnContentPadding
 import io.element.android.libraries.designsystem.utils.scaffoldScrollableContentInsets
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarHost
 import io.element.android.libraries.designsystem.utils.snackbar.rememberSnackbarHostState
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.testtags.testTag
 import io.element.android.libraries.ui.strings.CommonStrings
@@ -88,6 +81,8 @@ fun HomeView(
     homeState: HomeState,
     onRoomClick: (RoomId, EventId?) -> Unit,
     onSettingsClick: () -> Unit,
+    onAddAccountClick: () -> Unit,
+    onSwitchToAccount: (SessionId) -> Unit,
     onSetUpRecoveryClick: () -> Unit,
     onConfirmRecoveryKeyClick: () -> Unit,
     onStartChatClick: () -> Unit,
@@ -122,6 +117,13 @@ fun HomeView(
             )
         }
 
+        if (homeState.showMultiAccountAnnouncement) {
+            MultiAccountAnnouncementBottomSheet(
+                onDismiss = { homeState.eventSink(HomeEvent.DismissMultiAccountAnnouncement) },
+                onAddAccountClick = { if (firstThrottler.canHandle()) onAddAccountClick() },
+            )
+        }
+
         leaveRoomView()
 
         HomeScaffold(
@@ -133,6 +135,7 @@ fun HomeView(
             onStartChatClick = { if (firstThrottler.canHandle()) onStartChatClick() },
             onCreateSpaceClick = { if (firstThrottler.canHandle()) onCreateSpaceClick() },
             onMenuActionClick = onMenuActionClick,
+            onSwitchToAccount = onSwitchToAccount,
         )
 
         if (state.globalSearchState.isEnabled) {
@@ -160,7 +163,6 @@ fun HomeView(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeScaffold(
     state: HomeState,
@@ -171,6 +173,7 @@ private fun HomeScaffold(
     onStartChatClick: () -> Unit,
     onCreateSpaceClick: () -> Unit,
     onMenuActionClick: (RoomListMenuAction) -> Unit,
+    onSwitchToAccount: (SessionId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     fun onRoomClick(room: RoomListRoomSummary) {
@@ -194,7 +197,6 @@ private fun HomeScaffold(
         }
     }
 
-    val hazeState = rememberHazeState()
     val roomsLazyListState = rememberLazyListState()
     val spacesLazyListState = rememberLazyListState()
 
@@ -220,16 +222,14 @@ private fun HomeScaffold(
                 onMenuActionClick = onMenuActionClick,
                 onMarkAllAsRead = { roomListState.eventSink(RoomListEvent.MarkAllAsRead) },
                 onOpenSettings = onOpenSettings,
-                onAccountSwitch = {
-                    state.eventSink(HomeEvent.SwitchToAccount(it))
+                onAccountSwitch = { sessionId ->
+                    // The user has switched account by swiping their avatar, so they know the gesture.
+                    state.eventSink(HomeEvent.DismissSwipeAvatarAnnouncement)
+                    onSwitchToAccount(sessionId)
                 },
                 spaceFiltersState = roomListState.spaceFiltersState,
                 filtersState = roomListState.filtersState,
                 canReportBug = state.canReportBug,
-                modifier = Modifier.hazeEffect(
-                    state = hazeState,
-                    style = HazeMaterials.thick(),
-                )
             )
         },
         floatingActionButton = {
@@ -284,7 +284,6 @@ private fun HomeScaffold(
                         modifier = Modifier
                             .padding(outerPadding)
                             .consumeWindowInsets(outerPadding)
-                            .hazeSource(state = hazeState)
                     )
                     val isDirectMessagesSelected = roomListState.filtersState
                         .selectedFilters()
@@ -305,8 +304,7 @@ private fun HomeScaffold(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(outerPadding)
-                            .consumeWindowInsets(outerPadding)
-                            .hazeSource(state = hazeState),
+                            .consumeWindowInsets(outerPadding),
                         contentPadding = lazyColumnContentPadding + contentPadding,
                         state = state.homeSpacesState,
                         lazyListState = spacesLazyListState,
@@ -349,7 +347,6 @@ private fun SpacesFloatingActionButton(
         if (unreadRoomCount > 0) {
             UnreadIndicatorAtom(
                 count = unreadRoomCount.toLong(),
-                color = ElementTheme.colors.unreadIndicator,
                 border = BorderStroke(2.dp, ElementTheme.colors.bgCanvasDefault),
                 contentDescription = stringResource(R.string.a11y_unread_rooms_count, unreadRoomCount),
                 modifier = Modifier.align(Alignment.TopEnd),
@@ -381,6 +378,8 @@ internal fun HomeViewPreview(@PreviewParameter(HomeStatePreviewParam::class) sta
         homeState = state,
         onRoomClick = { _, _ -> },
         onSettingsClick = {},
+        onAddAccountClick = {},
+        onSwitchToAccount = {},
         onSetUpRecoveryClick = {},
         onConfirmRecoveryKeyClick = {},
         onStartChatClick = {},
@@ -401,6 +400,8 @@ internal fun HomeViewA11yPreview() = ElementPreview {
         homeState = aHomeState(),
         onRoomClick = { _, _ -> },
         onSettingsClick = {},
+        onAddAccountClick = {},
+        onSwitchToAccount = {},
         onSetUpRecoveryClick = {},
         onConfirmRecoveryKeyClick = {},
         onStartChatClick = {},

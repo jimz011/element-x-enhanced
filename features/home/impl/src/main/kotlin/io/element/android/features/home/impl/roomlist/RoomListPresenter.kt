@@ -51,6 +51,7 @@ import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
+import io.element.android.libraries.featureflag.api.ShowAllActivityInRoomListFeature
 import io.element.android.libraries.fullscreenintent.api.FullScreenIntentPermissionsState
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
@@ -59,6 +60,7 @@ import io.element.android.libraries.matrix.api.roomlist.RoomList
 import io.element.android.libraries.matrix.api.roomlist.RoomListFilter
 import io.element.android.libraries.matrix.ui.safety.rememberHideInvitesAvatar
 import io.element.android.libraries.push.api.battery.BatteryOptimizationState
+import io.element.android.libraries.sessionstorage.api.SessionStore
 import io.element.android.services.analytics.api.AnalyticsService
 import io.element.android.services.analytics.api.watchers.AnalyticsColdStartWatcher
 import io.element.android.services.analyticsproviders.api.trackers.captureInteraction
@@ -72,6 +74,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -97,6 +100,7 @@ class RoomListPresenter(
     private val spaceFiltersPresenter: Presenter<SpaceFiltersState>,
     private val globalSearchPresenter: Presenter<GlobalSearchState>,
     private val featureFlagService: FeatureFlagService,
+    private val sessionStore: SessionStore,
 ) : Presenter<RoomListState> {
     private val encryptionService = client.encryptionService
 
@@ -118,6 +122,15 @@ class RoomListPresenter(
         val showNewNotificationSoundBanner by remember {
             announcementService.announcementsToShowFlow().map { announcements ->
                 announcements.contains(Announcement.NewNotificationSound)
+            }
+        }.collectAsState(false)
+        val showSwipeAvatarBanner by remember {
+            combine(
+                announcementService.announcementsToShowFlow(),
+                sessionStore.sessionsFlow(),
+            ) { announcements, sessions ->
+                // The swipe gesture on the avatar is only available when there are several accounts
+                sessions.size >= 2 && announcements.contains(Announcement.SwipeAvatarToSwitchAccount)
             }
         }.collectAsState(false)
 
@@ -145,6 +158,9 @@ class RoomListPresenter(
         val spaceUnreadCounts = remember(allSummaries, spaceFiltersState.availableFilters()) {
             buildSpaceUnreadCounts(allSummaries, spaceFiltersState.availableFilters())
         }
+        val showAllActivity by produceState(initialValue = false) {
+            featureFlagService.isFeatureEnabledFlow(ShowAllActivityInRoomListFeature).collect { value = it }
+        }
 
         fun handleEvent(event: RoomListEvent) {
             when (event) {
@@ -158,6 +174,9 @@ class RoomListPresenter(
                 RoomListEvent.DismissBanner -> securityBannerDismissed = true
                 RoomListEvent.DismissNewNotificationSoundBanner -> coroutineScope.launch {
                     announcementService.onAnnouncementDismissed(Announcement.NewNotificationSound)
+                }
+                RoomListEvent.DismissSwipeAvatarBanner -> coroutineScope.launch {
+                    announcementService.onAnnouncementDismissed(Announcement.SwipeAvatarToSwitchAccount)
                 }
                 RoomListEvent.ToggleSearchResults -> searchState.eventSink(RoomListSearchEvent.ToggleSearchVisibility)
                 RoomListEvent.MarkAllAsRead -> coroutineScope.markAllAsRead(allSummaries)
@@ -197,13 +216,15 @@ class RoomListPresenter(
 
         val canReportRoom by produceState(false) { value = client.canReportRoom() }
         val showUnreadCount by produceState(false) {
-            value = featureFlagService.isFeatureEnabled(FeatureFlags.UnreadIndicatorCount)
+            featureFlagService.isFeatureEnabledFlow(FeatureFlags.UnreadIndicatorCount).collect { value = it }
         }
 
         val contentState = roomListContentState(
             securityBannerDismissed,
             showNewNotificationSoundBanner,
+            showSwipeAvatarBanner,
             showUnreadCount,
+            showAllActivity,
         )
 
         return RoomListState(
@@ -263,7 +284,9 @@ class RoomListPresenter(
     private fun roomListContentState(
         securityBannerDismissed: Boolean,
         showNewNotificationSoundBanner: Boolean,
+        showSwipeAvatarBanner: Boolean,
         showUnreadCount: Boolean,
+        showAllActivity: Boolean,
     ): RoomListContentState {
         val roomSummaries by produceState(initialValue = AsyncData.Loading()) {
             roomListDataSource.roomSummariesFlow.collect { value = AsyncData.Success(it) }
@@ -293,10 +316,12 @@ class RoomListPresenter(
                 RoomListContentState.Rooms(
                     securityBannerState = securityBannerState,
                     showNewNotificationSoundBanner = showNewNotificationSoundBanner,
+                    showSwipeAvatarBanner = showSwipeAvatarBanner,
                     showUnreadCount = showUnreadCount,
                     fullScreenIntentPermissionsState = fullScreenIntentPermissionsPresenter.present(),
                     batteryOptimizationState = batteryOptimizationPresenter.present(),
                     summaries = summaries.toImmutableList(),
+                    showAllActivity = showAllActivity,
                     seenRoomInvites = seenRoomInvites.toImmutableSet(),
                 )
             }

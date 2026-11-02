@@ -28,13 +28,16 @@ data class GlobalSearchState(
     val queryState: TextFieldState,
     val currentTarget: GlobalSearchTarget,
     val results: AsyncData<GlobalSearchResults>,
-    val history: AsyncData<ImmutableList<SearchHistoryResultItem>>,
+    val history: AsyncData<ImmutableList<SearchHistoryListItem>>,
     val messageSearchFilters: MessageSearchFilters,
     val availableRoomFilters: ImmutableList<RoomFilterOption>,
     val availableSenderFilters: ImmutableList<SenderFilterOption>,
     val eventSink: (GlobalSearchEvent) -> Unit
 )
 
+/**
+ * The target of the global search: either rooms or messages.
+ */
 @Immutable
 data class RoomFilterOption(val roomId: RoomId, val name: String)
 
@@ -89,10 +92,13 @@ enum class GlobalSearchTarget {
     MESSAGES,
 }
 
+/**
+ * The results of a global search, either a list of rooms or a list of messages.
+ */
 @Immutable
 sealed interface GlobalSearchResults {
     data class RoomListResults(val results: ImmutableList<RoomListRoomSummary>) : GlobalSearchResults
-    data class MessageSearchResults(val results: ImmutableList<MessageSearchResultItem>) : GlobalSearchResults
+    data class MessageSearchResults(val results: ImmutableList<MessageSearchListItem>) : GlobalSearchResults
 
     fun isEmpty(): Boolean = when (this) {
         is RoomListResults -> results.isEmpty()
@@ -100,7 +106,10 @@ sealed interface GlobalSearchResults {
     }
 }
 
-sealed interface MessageSearchResultItem {
+/**
+ * A single item in the message search results. It's the UI representation of [MessageSearchResult], which is the mapped model returned by the Matrix SDK.
+ */
+sealed interface MessageSearchListItem {
     val roomId: RoomId
     val eventId: EventId
     val senderId: UserId
@@ -109,12 +118,15 @@ sealed interface MessageSearchResultItem {
     val formattedTimestamp: String
     val timestampMillis: Long
 
+    /**
+     * A message item in the message search results.
+     */
     data class Message(
         val messageSearchResult: MessageSearchResult,
         val body: String,
         override val roomInfo: RoomInfo,
         override val formattedTimestamp: String,
-    ) : MessageSearchResultItem {
+    ) : MessageSearchListItem {
         override val roomId: RoomId = messageSearchResult.roomId
         override val eventId: EventId = messageSearchResult.eventId
         override val senderId: UserId = messageSearchResult.senderId
@@ -122,12 +134,15 @@ sealed interface MessageSearchResultItem {
         override val timestampMillis: Long = messageSearchResult.timestamp
     }
 
+    /**
+     * A message with media item in the message search results.
+     */
     data class Media(
         val messageSearchResult: MessageSearchResult,
         val mediaContent: MediaSearchResultContent,
         override val roomInfo: RoomInfo,
         override val formattedTimestamp: String,
-    ) : MessageSearchResultItem {
+    ) : MessageSearchListItem {
         override val roomId: RoomId = messageSearchResult.roomId
         override val eventId: EventId = messageSearchResult.eventId
         override val senderId: UserId = messageSearchResult.senderId
@@ -136,20 +151,28 @@ sealed interface MessageSearchResultItem {
     }
 }
 
-sealed interface SearchHistoryResultItem {
+/**
+ * A single entry in the global search history, displayed in the list of recent searches.
+ *
+ * It's the UI representation of [io.element.android.features.home.impl.search.history.SearchHistoryResult], which is the persisted model.
+ */
+sealed interface SearchHistoryListItem {
     val id: String
 
-    data class Query(val term: String) : SearchHistoryResultItem {
+    data class Query(val term: String) : SearchHistoryListItem {
         override val id: String = "query:$term"
     }
     data class Room(
         val roomId: RoomId,
         val roomInfo: RoomInfo,
-    ) : SearchHistoryResultItem {
+    ) : SearchHistoryListItem {
         override val id: String = "room:${roomId.value}"
     }
 }
 
+/**
+ * Represents the media content of a message search result.
+ */
 data class MediaSearchResultContent(
     val filename: String,
     val extension: String?,

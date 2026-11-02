@@ -8,6 +8,7 @@
 
 package io.element.android.features.messages.impl
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -77,24 +78,31 @@ import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBan
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerView
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerViewDefaults
 import io.element.android.features.messages.impl.timeline.FOCUS_ON_PINNED_EVENT_DEBOUNCE_DURATION_IN_MILLIS
+import io.element.android.features.messages.impl.timeline.SelectionAction
+import io.element.android.features.messages.impl.timeline.SelectionState
 import io.element.android.features.messages.impl.timeline.TimelineEvent
 import io.element.android.features.messages.impl.timeline.TimelineView
 import io.element.android.features.messages.impl.timeline.aGroupedEvents
 import io.element.android.features.messages.impl.timeline.aTimelineItemDaySeparator
 import io.element.android.features.messages.impl.timeline.aTimelineItemEvent
+import io.element.android.features.messages.impl.timeline.aTimelineItemList
 import io.element.android.features.messages.impl.timeline.aTimelineState
+import io.element.android.features.messages.impl.timeline.canApplyTo
 import io.element.android.features.messages.impl.timeline.components.CallMenuItem
 import io.element.android.features.messages.impl.timeline.components.customreaction.CustomReactionEvent
 import io.element.android.features.messages.impl.timeline.components.reactionsummary.ReactionSummaryEvent
 import io.element.android.features.messages.impl.timeline.components.reactionsummary.ReactionSummaryView
 import io.element.android.features.messages.impl.timeline.components.receipt.bottomsheet.ReadReceiptBottomSheet
 import io.element.android.features.messages.impl.timeline.components.receipt.bottomsheet.ReadReceiptBottomSheetEvent
+import io.element.android.features.messages.impl.timeline.isSelectionModeActive
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.TimelineItemGroupPosition
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemStateEventContent
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemTextContent
+import io.element.android.features.messages.impl.timeline.selectedCount
 import io.element.android.features.messages.impl.timeline.sendfailure.SendFailureDialogView
 import io.element.android.features.messages.impl.topbars.MessagesViewTopBar
+import io.element.android.features.messages.impl.topbars.SelectionModeTopBar
 import io.element.android.features.messages.impl.topbars.ThreadTopBar
 import io.element.android.features.messages.impl.voicemessages.composer.VoiceMessagePermissionRationaleDialog
 import io.element.android.features.messages.impl.voicemessages.composer.VoiceMessageSendingFailedDialog
@@ -135,6 +143,7 @@ import io.element.android.libraries.textcomposer.model.TextEditorState
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.wysiwyg.link.Link
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableSet
 import timber.log.Timber
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -178,6 +187,18 @@ fun MessagesView(
     fun hidingKeyboard(block: () -> Unit) {
         localView.hideKeyboard()
         block()
+    }
+
+    // Entering selection mode collapses the composer, so dismiss the keyboard too. hideKeyboard
+    // triggers the IME hide animation, keeping it in sync with the composer collapse.
+    LaunchedEffect(state.timelineState.isSelectionModeActive) {
+        if (state.timelineState.isSelectionModeActive) {
+            localView.hideKeyboard()
+        }
+    }
+
+    BackHandler(enabled = state.timelineState.isSelectionModeActive) {
+        state.timelineState.eventSink(TimelineEvent.ExitSelectionMode)
     }
 
     fun onContentClick(event: TimelineItem.Event) {
@@ -236,42 +257,58 @@ fun MessagesView(
             Scaffold(
                 contentWindowInsets = scaffoldScrollableContentInsets,
                 topBar = {
-                    if (state.timelineState.timelineMode is Timeline.Mode.Thread) {
-                        ThreadTopBar(
-                            roomName = state.roomName,
-                            roomAvatarData = state.roomAvatar,
-                            heroes = state.heroes,
-                            isTombstoned = state.isTombstoned,
-                            onBackClick = onBackClick,
-                        )
-                    } else {
-                        MessagesViewTopBar(
-                            roomName = state.roomName,
-                            roomAvatar = state.roomAvatar,
-                            isTombstoned = state.isTombstoned,
-                            heroes = state.heroes,
-                            dmUserIdentityState = state.dmUserVerificationState,
-                            sharedHistoryIcon = state.topBarSharedHistoryIcon,
-                            dmUserStatus = state.dmUserStatus,
-                            onBackClick = { hidingKeyboard { onBackClick() } },
-                            onRoomDetailsClick = { hidingKeyboard { onRoomDetailsClick() } },
-                            menuActions = {
-                                MessagesMenuActions(
-                                    displayThreads = state.timelineState.timelineMode !is Timeline.Mode.Thread && state.threads.hasThreads,
-                                    roomCallState = state.roomCallState,
-                                    onJoinCallClick = onJoinCallClick,
-                                    onThreadsListClick = onThreadsListClick
-                                )
-                                if (onSearchClick != null) {
-                                    IconButton(onClick = onSearchClick) {
-                                        Icon(
-                                            imageVector = CompoundIcons.Search(),
-                                            contentDescription = stringResource(R.string.screen_room_search_title),
-                                        )
+                    when {
+                        state.timelineState.isSelectionModeActive -> {
+                            val selection = state.timelineState.selectionState as SelectionState.Active
+                            SelectionModeTopBar(
+                                selectedCount = state.timelineState.selectedCount,
+                                action = selection.action,
+                                onCancelClick = {
+                                    state.timelineState.eventSink(TimelineEvent.ExitSelectionMode)
+                                },
+                                onConfirmClick = {
+                                    state.eventSink(MessagesEvent.ConfirmSelectionAction)
+                                },
+                            )
+                        }
+                        state.timelineState.timelineMode is Timeline.Mode.Thread -> {
+                            ThreadTopBar(
+                                roomName = state.roomName,
+                                roomAvatarData = state.roomAvatar,
+                                heroes = state.heroes,
+                                isTombstoned = state.isTombstoned,
+                                onBackClick = onBackClick,
+                            )
+                        }
+                        else -> {
+                            MessagesViewTopBar(
+                                roomName = state.roomName,
+                                roomAvatar = state.roomAvatar,
+                                isTombstoned = state.isTombstoned,
+                                heroes = state.heroes,
+                                dmUserIdentityState = state.dmUserVerificationState,
+                                sharedHistoryIcon = state.topBarSharedHistoryIcon,
+                                dmUserStatus = state.dmUserStatus,
+                                onBackClick = { hidingKeyboard { onBackClick() } },
+                                onRoomDetailsClick = { hidingKeyboard { onRoomDetailsClick() } },
+                                menuActions = {
+                                    MessagesMenuActions(
+                                        displayThreads = state.timelineState.timelineMode !is Timeline.Mode.Thread && state.threads.hasThreads,
+                                        roomCallState = state.roomCallState,
+                                        onJoinCallClick = onJoinCallClick,
+                                        onThreadsListClick = onThreadsListClick
+                                    )
+                                    if (onSearchClick != null) {
+                                        IconButton(onClick = onSearchClick) {
+                                            Icon(
+                                                imageVector = CompoundIcons.Search(),
+                                                contentDescription = stringResource(R.string.screen_room_search_title),
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 },
                 content = { padding ->
@@ -459,7 +496,7 @@ fun MessagesView(
         onRemoveMessage = { event ->
             state.eventSink(
                 MessagesEvent.HandleAction(
-                    action = TimelineItemAction.Redact,
+                    action = TimelineItemAction.AbortSending,
                     event = event,
                 )
             )
@@ -736,6 +773,40 @@ internal fun MessagesViewPreview(@PreviewParameter(MessagesStatePreviewParam::cl
         customReactionBottomSheet = {},
         onThreadsListClick = {},
         onSearchClick = {},
+    )
+}
+
+@PreviewsDayNight
+@Composable
+internal fun MessagesViewSelectionModePreview() = ElementPreview {
+    val timelineItems = aTimelineItemList(aTimelineItemTextContent())
+    val selectedEventIds = timelineItems
+        .filterIsInstance<TimelineItem.Event>()
+        .filter { SelectionAction.Forward.canApplyTo(it) }
+        .take(2)
+        .mapNotNull { it.eventId }
+        .toImmutableSet()
+    MessagesView(
+        state = aMessagesState(
+            timelineState = aTimelineState(
+                timelineItems = timelineItems,
+                selectionState = SelectionState.Active(SelectionAction.Forward, selectedEventIds),
+            ),
+        ),
+        onBackClick = {},
+        onRoomDetailsClick = {},
+        onEventContentClick = { _, _ -> false },
+        onGalleryEventItemClick = { _, _, _ -> false },
+        onUserDataClick = {},
+        onLinkClick = { _, _ -> },
+        onSendLocationClick = {},
+        onCreatePollClick = {},
+        onJoinCallClick = {},
+        onViewAllPinnedMessagesClick = { },
+        forceJumpToBottomVisibility = true,
+        knockRequestsBannerView = {},
+        customReactionBottomSheet = {},
+        onThreadsListClick = {},
     )
 }
 
