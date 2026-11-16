@@ -520,6 +520,7 @@ class RoomListPresenterTest {
         }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `present - handle MarkAllAsRead marks every room with unread content as read`() = runTest {
         val firstUnreadRoom = FakeBaseRoom(roomId = A_ROOM_ID)
@@ -532,12 +533,15 @@ class RoomListPresenterTest {
             givenGetRoomResult(A_ROOM_ID_2, secondUnreadRoom)
             givenGetRoomResult(A_ROOM_ID_3, alreadyReadRoom)
         }
-        val presenter = createRoomListPresenter(client = matrixClient)
+        val presenter = createRoomListPresenter(
+            client = matrixClient,
+            notificationCleaner = FakeNotificationCleaner(clearMessagesForRoomLambda = { _, _ -> }),
+        )
         presenter.test {
             allRoomsList.summaries.emit(
                 listOf(
-                    aRoomSummary(roomId = A_ROOM_ID, numUnreadMessages = 3),
-                    aRoomSummary(roomId = A_ROOM_ID_2, numUnreadMessages = 1),
+                    aRoomSummary(roomId = A_ROOM_ID, numUnreadNotifications = 3),
+                    aRoomSummary(roomId = A_ROOM_ID_2, numUnreadNotifications = 1),
                     aRoomSummary(roomId = A_ROOM_ID_3, numUnreadMessages = 0),
                 )
             )

@@ -55,7 +55,7 @@ class GlobalSearchStatePreviewParam : PreviewParameterProvider<GlobalSearchState
             return sequenceOf(
                 // Not enabled, no preview
                 aGlobalSearchState(isEnabled = false),
-                aGlobalSearchState(isSearchActive = true, queryState = TextFieldState("Query")),
+                aGlobalSearchState(isSearchActive = true, queryState = TextFieldState("")),
                 aGlobalSearchState(
                     isSearchActive = true,
                     currentTarget = GlobalSearchTarget.ROOMS,
@@ -179,6 +179,12 @@ class GlobalSearchStatePreviewParam : PreviewParameterProvider<GlobalSearchState
                     ),
                     availableRoomFilters = persistentListOf(RoomFilterOption(RoomId("!roomId:server.org"), "A room")),
                     availableSenderFilters = persistentListOf(SenderFilterOption(UserId("@user:server.org"), "A user")),
+                ),
+                aGlobalSearchState(
+                    currentTarget = GlobalSearchTarget.ROOMS,
+                    queryState = TextFieldState("Query"),
+                    results = AsyncData.Success(GlobalSearchResults.RoomListResults(persistentListOf())),
+                    showLearnMoreBottomSheet = true,
                 ),
             )
         }
@@ -325,6 +331,7 @@ internal fun aGlobalSearchState(
     messageSearchFilters: MessageSearchFilters = MessageSearchFilters(),
     availableRoomFilters: ImmutableList<RoomFilterOption> = persistentListOf(),
     availableSenderFilters: ImmutableList<SenderFilterOption> = persistentListOf(),
+    showLearnMoreBottomSheet: Boolean = false,
     eventSink: (GlobalSearchEvent) -> Unit = {},
 ) = GlobalSearchState(
     isEnabled = isEnabled,
@@ -336,5 +343,6 @@ internal fun aGlobalSearchState(
     messageSearchFilters = messageSearchFilters,
     availableRoomFilters = availableRoomFilters,
     availableSenderFilters = availableSenderFilters,
+    showLearnMoreBottomSheet = showLearnMoreBottomSheet,
     eventSink = eventSink
 )

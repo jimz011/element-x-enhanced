@@ -43,4 +43,6 @@ sealed interface GlobalSearchEvent {
     data class UpdateDateRangeFilter(val dateRange: MessageSearchDateRange?) : GlobalSearchEvent
     data class UpdateMediaTypeFilter(val mediaType: MessageSearchMediaType) : GlobalSearchEvent
     object ClearMessageSearchFilters : GlobalSearchEvent
+    /** The user toggled the visibility of the "Learn More" bottom sheet. */
+    data class ToggleLearnMoreBottomSheet(val show: Boolean) : GlobalSearchEvent
 }

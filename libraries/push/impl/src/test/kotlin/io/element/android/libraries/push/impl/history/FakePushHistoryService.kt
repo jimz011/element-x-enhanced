@@ -13,6 +13,7 @@ import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.push.impl.db.PushRequest
 import io.element.android.tests.testutils.lambda.lambdaError
+import kotlinx.coroutines.flow.Flow
 import kotlin.time.Instant
 
 class FakePushHistoryService(
@@ -29,6 +30,7 @@ class FakePushHistoryService(
     private val replacePushRequests: (List<PushRequest>) -> Result<Unit> = { lambdaError() },
     private val getPushRequest: (SessionId, EventId) -> Result<PushRequest?> = { _, _ -> Result.success(null) },
     private val getPendingPushRequests: (SessionId, Instant?) -> Result<List<PushRequest>> = { _, _ -> lambdaError() },
+    private val getPendingPushRequestsFlow: (SessionId, Instant) -> Flow<List<PushRequest>> = { _, _ -> lambdaError() },
     private val removeOldPushRequests: (SessionId) -> Result<Unit> = { lambdaError() },
 ) : PushHistoryService {
     override suspend fun onPushResult(
@@ -65,6 +67,10 @@ class FakePushHistoryService(
 
     override suspend fun getPendingPushRequests(sessionId: SessionId, since: Instant?): Result<List<PushRequest>> {
         return getPendingPushRequests.invoke(sessionId, since)
+    }
+
+    override fun getPendingPushRequestsFlow(sessionId: SessionId, since: Instant): Flow<List<PushRequest>> {
+        return getPendingPushRequestsFlow.invoke(sessionId, since)
     }
 
     override suspend fun removeOldPushRequests(sessionId: SessionId): Result<Unit> {

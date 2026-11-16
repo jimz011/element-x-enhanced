@@ -29,4 +29,6 @@ data class RoomEventGroupInfo(
     val isUpdated: Boolean = false,
     // The newest event in the group, which "Mark as read" has to send the read receipt for
     val latestEventId: EventId? = null,
+    // true if the room is also joined by another account signed in on this device
+    val showSessionId: Boolean = false,
 )

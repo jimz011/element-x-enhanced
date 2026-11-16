@@ -8,6 +8,8 @@
 
 package io.element.android.features.messages.impl.timeline.factories
 
+import io.element.android.libraries.matrix.api.room.RoomMember
+
 /**
  * Some data used to configure the creation of timeline items.
  * @param computeReadReceipts when false, read receipts will be empty.
@@ -16,4 +18,5 @@ package io.element.android.features.messages.impl.timeline.factories
 data class TimelineItemsFactoryConfig(
     val computeReadReceipts: Boolean,
     val computeReactions: Boolean,
+    val roomMembersProvider: () -> List<RoomMember> = { emptyList() },
 )

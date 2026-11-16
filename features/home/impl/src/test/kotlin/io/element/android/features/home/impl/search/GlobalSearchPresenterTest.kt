@@ -450,7 +450,7 @@ class GlobalSearchPresenterTest {
         val roomA = RoomId("!roomA:server.org")
         val roomB = RoomId("!roomB:server.org")
         val matrixClient = FakeMatrixClient().apply {
-            getRoomInfoFlowLambda = { roomId -> flowOf(Optional.of(aRoomInfo(id = roomId, name = roomId.value))) }
+            getRoomInfoLambda = { roomId -> Result.success(aRoomInfo(id = roomId, name = roomId.value)) }
         }
         val presenter = createGlobalSearchPresenter(
             messageSearchService = FakeMessageSearchService(messageSearch),
@@ -478,7 +478,10 @@ class GlobalSearchPresenterTest {
             unfilteredState.eventSink(GlobalSearchEvent.UpdateRoomFilter(roomId = roomA, roomName = roomA.value))
             testScheduler.advanceUntilIdle()
 
-            val filteredState = consumeItemsUntilPredicate { it.messageSearchFilters.roomId == roomA }.last()
+            val filteredState = consumeItemsUntilPredicate {
+                it.messageSearchFilters.roomId == roomA &&
+                    (it.results.dataOrNull() as? GlobalSearchResults.MessageSearchResults)?.results?.size == 1
+            }.last()
             val filteredResults = (filteredState.results.dataOrNull() as GlobalSearchResults.MessageSearchResults).results
             assertThat(filteredResults).hasSize(1)
             assertThat(filteredResults.single().roomId).isEqualTo(roomA)

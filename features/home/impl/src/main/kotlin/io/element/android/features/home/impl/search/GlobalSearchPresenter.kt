@@ -119,6 +119,7 @@ class GlobalSearchPresenter(
                 .sortedBy { it.name.lowercase() }
                 .toImmutableList()
         }
+        var showLearnMoreBottomSheet by rememberSaveable { mutableStateOf(false) }
 
         StartSearchBackfillWhenVisible(isEnabled = isEnabled, isSearchActive = isSearchActive)
 
@@ -189,6 +190,12 @@ class GlobalSearchPresenter(
                         Triple(results, paginationState, filters)
                     }.collectLatest { (results, paginationState, filters) ->
                         Timber.d("Message search found ${results.size} items, pagination state: $paginationState")
+
+                        // This is an intermediate state, where we received a signal that the current search finished, but the results have not been
+                        // received yet.
+                        if (paginationState is MessageSearchPaginationState.Idle && !paginationState.endReached && results.isEmpty()) {
+                            return@collectLatest
+                        }
 
                         // Try processing the results in parallel to speed up the processing time, since we have to wait until we get the room info for each
                         // result, which can be slow if we have a lot of results. The original order is kept by using `awaitAll()`.
@@ -321,6 +328,9 @@ class GlobalSearchPresenter(
                 GlobalSearchEvent.ClearSearchHistory -> coroutineScope.launch {
                     searchHistoryStore.clear()
                 }
+                is GlobalSearchEvent.ToggleLearnMoreBottomSheet -> {
+                    showLearnMoreBottomSheet = event.show
+                }
             }
         }
 
@@ -334,6 +344,7 @@ class GlobalSearchPresenter(
             messageSearchFilters = messageSearchFilters,
             availableRoomFilters = availableRoomFilters,
             availableSenderFilters = availableSenderFilters,
+            showLearnMoreBottomSheet = showLearnMoreBottomSheet,
             eventSink = ::handleEvent,
         )
     }

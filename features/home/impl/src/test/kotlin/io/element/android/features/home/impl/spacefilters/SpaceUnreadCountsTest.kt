@@ -15,7 +15,7 @@ import org.junit.Test
 class SpaceUnreadCountsTest {
     @Test
     fun `totalUnreadRoomCount counts every unread room account-wide`() {
-        val unreadRoom = aRoomListRoomSummary(id = "!unread:example.org", numberOfUnreadMessages = 1)
+        val unreadRoom = aRoomListRoomSummary(id = "!unread:example.org", numberOfUnreadNotifications = 1)
         val readRoom = aRoomListRoomSummary(id = "!read:example.org")
 
         val result = buildSpaceUnreadCounts(summaries = listOf(unreadRoom, readRoom), availableFilters = emptyList())
@@ -31,7 +31,7 @@ class SpaceUnreadCountsTest {
             roomId = RoomId("!space:example.org"),
             descendants = listOf(unreadRoomId, readRoomId),
         )
-        val unreadRoom = aRoomListRoomSummary(id = unreadRoomId.value, numberOfUnreadMessages = 1)
+        val unreadRoom = aRoomListRoomSummary(id = unreadRoomId.value, numberOfUnreadNotifications = 1)
         val readRoom = aRoomListRoomSummary(id = readRoomId.value)
 
         val result = buildSpaceUnreadCounts(
@@ -56,7 +56,7 @@ class SpaceUnreadCountsTest {
             level = 1,
             descendants = listOf(unreadNestedRoomId),
         )
-        val unreadNestedRoom = aRoomListRoomSummary(id = unreadNestedRoomId.value, numberOfUnreadMessages = 1)
+        val unreadNestedRoom = aRoomListRoomSummary(id = unreadNestedRoomId.value, numberOfUnreadNotifications = 1)
 
         val result = buildSpaceUnreadCounts(
             summaries = listOf(unreadNestedRoom),
@@ -65,6 +65,15 @@ class SpaceUnreadCountsTest {
 
         assertThat(result.countFor(topLevel)).isEqualTo(1)
         assertThat(result.countFor(childSpace)).isEqualTo(1)
+    }
+
+    @Test
+    fun `message counts without notifications do not make a read room unread`() {
+        val room = aRoomListRoomSummary(numberOfUnreadMessages = 42)
+
+        val result = buildSpaceUnreadCounts(summaries = listOf(room), availableFilters = emptyList())
+
+        assertThat(result.totalUnreadRoomCount).isEqualTo(0)
     }
 
     @Test

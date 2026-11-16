@@ -32,6 +32,7 @@ data class GlobalSearchState(
     val messageSearchFilters: MessageSearchFilters,
     val availableRoomFilters: ImmutableList<RoomFilterOption>,
     val availableSenderFilters: ImmutableList<SenderFilterOption>,
+    val showLearnMoreBottomSheet: Boolean,
     val eventSink: (GlobalSearchEvent) -> Unit
 )
 

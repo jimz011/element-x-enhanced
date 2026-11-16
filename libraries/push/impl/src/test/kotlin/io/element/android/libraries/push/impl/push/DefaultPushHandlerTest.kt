@@ -133,6 +133,7 @@ class DefaultPushHandlerTest {
         val submitWorkLambda = lambdaRecorder<WorkManagerRequestBuilder, Unit> {}
 
         val defaultPushHandler = createDefaultPushHandler(
+            incrementPushCounterResult = {},
             pushClientSecret = FakePushClientSecret(
                 getUserIdFromSecretResult = { A_USER_ID }
             ),

@@ -10,6 +10,7 @@ package io.element.android.features.messages.impl.timeline.model.event
 
 import io.element.android.libraries.core.mimetype.MimeTypes
 import io.element.android.libraries.core.mimetype.MimeTypes.isMimeTypeVideo
+import io.element.android.libraries.htmlrenderer.api.DocumentNode
 import io.element.android.libraries.matrix.api.media.MediaSource
 import io.element.android.libraries.matrixmedia.api.MAX_THUMBNAIL_HEIGHT
 import io.element.android.libraries.matrixmedia.api.MAX_THUMBNAIL_WIDTH
@@ -22,6 +23,7 @@ data class TimelineItemVideoContent(
     override val caption: String?,
     override val formattedCaption: CharSequence?,
     override val htmlCaption: String? = null,
+    override val captionTree: DocumentNode? = null,
     override val isEdited: Boolean,
     val duration: Duration,
     override val mediaSource: MediaSource,

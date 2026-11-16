@@ -253,7 +253,7 @@ class NotificationBroadcastReceiverHandlerTest : RobolectricTest() {
     @Test
     fun `Test mark room as read sends the receipts for the notified event instead of the timeline's latest one`() = runTest {
         val sessionPreferencesStore = FakeSessionPreferencesStoreFactory(
-            getLambda = { _, _ -> InMemorySessionPreferencesStore(isSendPublicReadReceiptsEnabled = true) }
+            getLambda = lambdaRecorder { _, _ -> InMemorySessionPreferencesStore(isSendPublicReadReceiptsEnabled = true) }
         )
         val receipts = mutableListOf<Pair<EventId, ReceiptType>>()
         val markAsReadResult = lambdaRecorder<ReceiptType, Result<Unit>> { Result.success(Unit) }
